@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name:
+    - name: Set up
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev libayatana-appindicator3-dev
+        sudo apt-get install -y libgdk-3-dev
     - uses: PyO3/maturin-action@v1
       with:
         # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
