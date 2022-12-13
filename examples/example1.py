@@ -1,4 +1,4 @@
-import plotly_wry
+import pywry
 from multiprocessing import Process
 
 def readcontents():
@@ -6,10 +6,10 @@ def readcontents():
         return f.read()
 
 def task(message):
-    plotly_wry.show_html(message)
+    pywry.show_html(message)
 
 def main():
-    for i in range(4):
+    for i in range(1):
         p = Process(target=task, args=(readcontents(),))
         p.start()
 

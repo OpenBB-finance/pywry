@@ -1,19 +1,52 @@
+#![allow(non_snake_case)]
+#![allow(non_camel_case_types)]
+
 use pyo3::prelude::*;
+use image::{ImageFormat};
 use wry::{
     application::{
         event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
-        window::WindowBuilder,
+        window::{Fullscreen, WindowBuilder, Icon}, dpi::LogicalSize,
     },
     webview::WebViewBuilder,
 };
 
 /// A function to show the provided html in a WRY browser
 #[pyfunction]
-fn show_html(title: String, html_content: String, hide_output: bool) -> PyResult<String> {
+fn show_html(
+    html_content: String,
+    hide_output: Option<bool>,
+    title: Option<String>,
+    transparent: Option<bool>,
+    fullscreen: Option<bool>,
+    width: Option<u32>,
+    height: Option<u32>,
+) -> PyResult<String> {
+    let title = title.unwrap_or("PyWry - Star Us!".to_string());
+    let hide_output = hide_output.unwrap_or(false);
+    let transparent = transparent.unwrap_or(false);
+    let fullscreen = fullscreen.unwrap_or(false);
+    let width = width.unwrap_or(800);
+    let height = height.unwrap_or(600);
+
+    let bytes: Vec<u8> = include_bytes!("icon.png").to_vec();
+    let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png).unwrap().into_rgba8();
+    let (icon_width, icon_height) = imagebuffer.dimensions();
+    let icon_rgba = imagebuffer.into_raw();
+
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title(&title)
+        .with_decorations(!transparent)
+        .with_transparent(transparent)
+        .with_fullscreen(if fullscreen {
+            Some(Fullscreen::Borderless(None))
+        } else {
+            None
+        })
+        .with_inner_size(LogicalSize::new(width, height))
+        .with_title(title)
+        .with_window_icon(Some(Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap())) 
         .build(&event_loop)
         .unwrap();
     let _webview = WebViewBuilder::new(window)
@@ -31,7 +64,7 @@ fn show_html(title: String, html_content: String, hide_output: bool) -> PyResult
                 if !hide_output {
                     println!("Wry has started!");
                 }
-            },
+            }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
