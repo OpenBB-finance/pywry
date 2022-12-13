@@ -13,9 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name:
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev libayatana-appindicator3-dev
     - uses: PyO3/maturin-action@v1
       with:
-        manylinux: auto
+        # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
+        manylinux: off
         command: build
         args: --release --sdist -o dist --find-interpreter
     - name: Upload wheels
