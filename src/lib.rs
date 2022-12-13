@@ -1,18 +1,18 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use std::path::Path;
 use image::ImageFormat;
 use pyo3::prelude::*;
+use std::path::Path;
 use wry::{
     application::{
+        dpi::LogicalSize,
         event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
-        window::{Fullscreen, WindowBuilder, Icon}, dpi::LogicalSize,
+        window::{Fullscreen, Icon, WindowBuilder},
     },
     webview::WebViewBuilder,
 };
-
 
 /// A function to show the provided html in a WRY browser
 #[pyfunction]
@@ -32,9 +32,10 @@ fn show_html(
     let width = width.unwrap_or(800);
     let height = height.unwrap_or(600);
 
-
     let bytes: Vec<u8> = include_bytes!("../assets/icon2.png").to_vec();
-    let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png).unwrap().into_rgba8();
+    let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png)
+        .unwrap()
+        .into_rgba8();
     let (icon_width, icon_height) = imagebuffer.dimensions();
     let icon_rgba = imagebuffer.into_raw();
 
@@ -50,7 +51,9 @@ fn show_html(
         .with_inner_size(LogicalSize::new(width, height))
         .with_title(title)
         // and then in the window initialization
-        .with_window_icon(Some(Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap()))
+        .with_window_icon(Some(
+            Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap(),
+        ))
         .build(&event_loop)
         .unwrap();
     let _webview = WebViewBuilder::new(window)
@@ -59,7 +62,6 @@ fn show_html(
         .unwrap()
         .build()
         .unwrap();
-
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -76,7 +78,6 @@ fn show_html(
             } => *control_flow = ControlFlow::Exit,
             _ => (),
         }
-
     });
 }
 
