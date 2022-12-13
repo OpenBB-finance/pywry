@@ -1,16 +1,23 @@
 import plotly_wry
-import threading
+from multiprocessing import Process
+
+def readcontents():
+    with open('file.html', 'r') as f:
+        return f.read()
 
 def wait_for_user_input():
-    message = input('Type html to be viewed in webview:\n> ')
-    # spawn thread in python
-    threading.Thread(target=task, args=[message]).start()
+    while True:
+        message = input('Type html to be viewed in webview:\n> ')
+        p = Process(target=task, args=(message,))
+        p.start()
 
 def task(message):
-    plotly_wry.show(message)
+    plotly_wry.show_html(message)
 
 def main():
-    wait_for_user_input()
+    for i in range(4):
+        p = Process(target=task, args=(readcontents(),))
+        p.start()
 
 if __name__ == '__main__':
     main()
