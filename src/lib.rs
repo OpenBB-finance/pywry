@@ -10,15 +10,15 @@ use wry::{
 
 /// A function to show the provided html in a WRY browser
 #[pyfunction]
-fn show_html(file_path: String) -> PyResult<String> {
+fn show_html(title: String, html_content: String, hide_output: bool) -> PyResult<String> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Juan Step from the MOON")
+        .with_title(&title)
         .build(&event_loop)
         .unwrap();
     let _webview = WebViewBuilder::new(window)
         .unwrap()
-        .with_html(&file_path)
+        .with_html(&html_content)
         .unwrap()
         .build()
         .unwrap();
@@ -27,7 +27,11 @@ fn show_html(file_path: String) -> PyResult<String> {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::NewEvents(StartCause::Init) => println!("Wry has started!"),
+            Event::NewEvents(StartCause::Init) => {
+                if !hide_output {
+                    println!("Wry has started!");
+                }
+            },
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
