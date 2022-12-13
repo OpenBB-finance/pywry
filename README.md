@@ -7,8 +7,8 @@ To use just run the following:
 
 Basic Usage:
 ```python
->>> import plotly_wry
->>> plotly_wry.show_html("<h1>Welcome to WRY with python</h1>")
+>>> import pywry
+>>> pywry.show_html("<h1>Welcome to WRY with python</h1>")
 
 ```
 

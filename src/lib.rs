@@ -39,7 +39,7 @@ fn show_html(file_path: String) -> PyResult<String> {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn plotly_wry(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(show_html, m)?)?;
     Ok(())
 }

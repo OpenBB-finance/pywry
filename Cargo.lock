@@ -1269,14 +1269,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
 
 [[package]]
-name = "plotly-wry"
-version = "0.1.0"
-dependencies = [
- "pyo3",
- "wry",
-]
-
-[[package]]
 name = "png"
 version = "0.17.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1408,6 +1400,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pywry"
+version = "0.1.0"
+dependencies = [
+ "pyo3",
+ "wry",
 ]
 
 [[package]]
