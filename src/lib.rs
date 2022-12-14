@@ -31,7 +31,7 @@ fn show_html(
     let width = width.unwrap_or(800);
     let height = height.unwrap_or(600);
 
-    let bytes: Vec<u8> = include_bytes!("../assets/icon2.png").to_vec();
+    let bytes: Vec<u8> = include_bytes!("../assets/icon.png").to_vec();
     let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png)
         .unwrap()
         .into_rgba8();
