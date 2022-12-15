@@ -10,6 +10,7 @@ use wry::application::{
 use async_std::channel::unbounded;
 use async_std::task;
 use std::collections::HashMap;
+use futures::future;
 
 use async_std::channel::{Receiver, Sender};
 use server::run_server;
@@ -28,7 +29,7 @@ impl SendData {
     #[new]
     fn new() -> Self {
         let (sender, receiver) = unbounded();
-        start(sender, receiver);
+        start(sender.clone(), receiver);
         Self { sender }
     }
 }
@@ -41,7 +42,7 @@ fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
 
     task::spawn(run_server(sender));
 
-    task::spawn(event_loop.run(move |event, event_loop, control_flow| {
+    event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         let response = receiver.try_recv().unwrap_or_default();
@@ -78,9 +79,7 @@ fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
             }
             _ => (),
         }
-    }));
-
-    Ok(())
+    });
 }
 
 /// A Python module implemented in Rust.
