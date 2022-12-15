@@ -19,26 +19,32 @@ pub mod window;
 
 #[pyclass]
 struct SendData {
-    sender: Sender<String>,
+    sender: Option<Sender<String>>,
 }
 
 #[pymethods]
 impl SendData {
     #[new]
     fn new() -> Self {
+        // task::spawn(start(sender.clone(), receiver));
+        Self { sender: None}
+    }
+
+    fn start(&mut self) -> PyResult<()> {
         let (sender, receiver) = mpsc::channel();
-        start(sender.clone(), receiver);
-        Self { sender }
+        start_wry(sender.clone(), receiver);
+        self.sender = Some(sender);
+        Ok(())
     }
 
     fn send_html(&self, html: String) -> PyResult<()> {
-        self.sender.send(html);
+        self.sender.as_ref().unwrap().send(html);
         Ok(())
     }
 }
 
 // #[pyfunction]
-fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
+fn start_wry(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
     let event_loop = EventLoop::<UserEvents>::with_user_event();
     let mut webviews = HashMap::new();
     let proxy = event_loop.create_proxy();
