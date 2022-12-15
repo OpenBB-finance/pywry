@@ -3,7 +3,6 @@
 
 use pyo3::prelude::*;
 use window::start_wry;
-use websocket::send_message;
 use std::sync::mpsc;
 
 pub mod websocket;
