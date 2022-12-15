@@ -2,9 +2,9 @@ use futures::future;
 use futures::prelude::*;
 use std::{env, io::Error as IoError};
 
-use async_std::channel::Sender;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::task;
+use std::sync::mpsc::Sender;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
     let ws_stream = async_tungstenite::accept_async(raw_stream).await.unwrap();
@@ -20,7 +20,7 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
 
     broadcast_incoming.await;
     println!("{}", &x);
-    sender.send(x).await;
+    sender.send(x);
 }
 
 pub async fn run_server(sender: Sender<String>) -> Result<(), IoError> {

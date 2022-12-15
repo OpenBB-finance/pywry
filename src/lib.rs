@@ -7,12 +7,10 @@ use wry::application::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use async_std::channel::unbounded;
 use async_std::task;
 use std::collections::HashMap;
-use futures::future;
+use std::sync::mpsc::{self, Receiver, Sender};
 
-use async_std::channel::{Receiver, Sender};
 use server::run_server;
 use window::{create_new_window, UserEvents};
 
@@ -28,9 +26,14 @@ struct SendData {
 impl SendData {
     #[new]
     fn new() -> Self {
-        let (sender, receiver) = unbounded();
+        let (sender, receiver) = mpsc::channel();
         start(sender.clone(), receiver);
         Self { sender }
+    }
+
+    fn send_html(&self, html: String) -> PyResult<()> {
+        self.sender.send(html);
+        Ok(())
     }
 }
 
@@ -85,6 +88,6 @@ fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
-    // m.add_function(wrap_pyfunction!(start, m)?)?;
+    m.add_class::<SendData>()?;
     Ok(())
 }
