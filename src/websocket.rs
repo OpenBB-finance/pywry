@@ -1,13 +1,14 @@
 use futures::future;
 use futures::prelude::*;
-use std::{env, io::Error as IoError};
+use std::io::Error as IoError;
 
-use async_std::net::{TcpListener, TcpStream};
-use async_std::task;
+use async_std::{task, net::{TcpListener, TcpStream}};
 use std::sync::mpsc::Sender;
+use async_tungstenite::{accept_async, client_async, tungstenite::Message};
+use async_tungstenite::async_std::connect_async;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
-    let ws_stream = async_tungstenite::accept_async(raw_stream).await.unwrap();
+    let ws_stream = accept_async(raw_stream).await.unwrap();
     let (_, incoming) = ws_stream.split();
 
     let mut x = String::new();
@@ -24,13 +25,11 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
 }
 
 pub async fn run_server(sender: Sender<String>) -> Result<(), IoError> {
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+    let addr = "127.0.0.1:9000".to_string();
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
-    let listener = try_socket.expect("Failed to bind");
+    let listener = try_socket.unwrap();
     println!("Listening on: {}", addr);
 
     // Let's spawn the handling of each connection in a separate task.
