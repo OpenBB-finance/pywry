@@ -6,7 +6,7 @@ use async_std::{
     net::{TcpListener, TcpStream},
     task,
 };
-use async_tungstenite::{accept_async, client_async, tungstenite::Message};
+use async_tungstenite::accept_async;
 use std::sync::mpsc::Sender;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
@@ -26,8 +26,8 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
     sender.send(x);
 }
 
-pub async fn run_server(sender: Sender<String>) -> Result<(), IoError> {
-    let addr = "127.0.0.1:9000".to_string();
+pub async fn run_server(port: u16, sender: Sender<String>) -> Result<(), IoError> {
+    let addr = format!("127.0.0.1:{}", port).to_string();
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;

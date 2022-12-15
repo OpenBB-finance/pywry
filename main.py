@@ -4,16 +4,14 @@ from multiprocessing import Process
 from websockets import connect
 import pywry
 
-
-def handle_start():
-    pywry.start()
-
+base = pywry.WindowManager()
 
 class PyWry:
     def __init__(self):
-        self.runner = Process(target=handle_start)
+        self.port = base.get_port()
+        self.runner = Process(target=self.handle_start)
         self.runner.start()
-        self.url = "ws://127.0.0.1:9000"
+        self.url = "ws://127.0.0.1:" + str(self.port)
         # TODO: replace sleep with a check for the validity of websocket
         time.sleep(3)
 
@@ -23,6 +21,10 @@ class PyWry:
     async def handle_html(self, html: str):
         async with connect(self.url) as websocket:
             await websocket.send(html)
+
+    @staticmethod
+    def handle_start():
+        base.start()
 
     # TODO: kill process when class is exited
 

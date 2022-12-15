@@ -11,10 +11,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.17", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.17", features = ["attributes", "async-std-runtime"] }
 wry = "0.23"
 image = {version="0.24.5", default-features = false, features = ["png"] }
 futures = "0.3"
-async-tungstenite = { version="0.19", features=["async-std-runtime"] }
+async-tungstenite = "0.19"
 async-std = "1.12"
 futures-util = { version="0.3.25", feautres=["stream"]}

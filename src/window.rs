@@ -10,10 +10,10 @@ use wry::{
     webview::{WebView, WebViewBuilder},
 };
 
+use crate::websocket::run_server;
 use async_std::task;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::websocket::run_server;
 
 enum UserEvents {
     CloseWindow(WindowId),
@@ -55,12 +55,12 @@ fn create_new_window(
     (window_id, webview)
 }
 
-pub fn start_wry(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
+pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
     let event_loop = EventLoop::<UserEvents>::with_user_event();
     let mut webviews = HashMap::new();
     let proxy = event_loop.create_proxy();
 
-    task::spawn(run_server(sender));
+    task::spawn(run_server(port, sender));
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
