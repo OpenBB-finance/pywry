@@ -1,14 +1,12 @@
-  use std::collections::HashMap;
   use wry::{
     application::{
-      event::{Event, StartCause, WindowEvent},
-      event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
+      event_loop::{EventLoopProxy, EventLoopWindowTarget},
       window::{Window, WindowBuilder, WindowId},
     },
     webview::{WebView, WebViewBuilder},
   };
 
-enum UserEvents {
+pub enum UserEvents {
     CloseWindow(WindowId),
     NewWindow(),
 }

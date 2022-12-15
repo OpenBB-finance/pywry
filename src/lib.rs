@@ -6,7 +6,6 @@ use wry::{
     application::{
         event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
-        window::{WindowId},
     },
 };
 
@@ -16,7 +15,7 @@ use std::collections::HashMap;
 
 use async_std::channel::{Sender, Receiver};
 use server::run_server;
-use window::create_new_window;
+use window::{create_new_window, UserEvents};
 
 pub mod server;
 pub mod window;
@@ -40,11 +39,6 @@ impl SendData {
 
 // #[pyfunction]
 fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
-    enum UserEvents {
-        CloseWindow(WindowId),
-        NewWindow(),
-    }
-
     let event_loop = EventLoop::<UserEvents>::with_user_event();
     let mut webviews = HashMap::new();
     let proxy = event_loop.create_proxy();
