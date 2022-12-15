@@ -61,26 +61,16 @@ fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
             webviews.insert(new_window.0, new_window.1);
         }
 
-        match event {
-            Event::NewEvents(StartCause::Init) => println!("Wry application started!"),
-            Event::WindowEvent {
-                event, window_id, ..
-            } => match event {
-                WindowEvent::CloseRequested => {
-                    webviews.remove(&window_id);
-                    if webviews.is_empty() {
-                        *control_flow = ControlFlow::Exit
-                    }
-                }
-                _ => (),
-            },
-            Event::UserEvent(UserEvents::CloseWindow(id)) => {
-                webviews.remove(&id);
+        if let Event::WindowEvent {
+            event, window_id, ..
+        } = event
+        {
+            if event == WindowEvent::CloseRequested {
+                webviews.remove(&window_id);
                 if webviews.is_empty() {
                     *control_flow = ControlFlow::Exit
                 }
             }
-            _ => (),
         }
     });
 }
