@@ -2,12 +2,11 @@
 #![allow(non_camel_case_types)]
 
 use pyo3::prelude::*;
-use window::start_wry;
 use std::sync::mpsc;
+use window::start_wry;
 
 pub mod websocket;
 pub mod window;
-
 
 #[pyfunction]
 fn start() -> PyResult<()> {

@@ -1,13 +1,13 @@
+use wry::application::{
+    event::{Event, StartCause, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+};
 use wry::{
     application::{
         event_loop::{EventLoopProxy, EventLoopWindowTarget},
         window::{Window, WindowBuilder, WindowId},
     },
     webview::{WebView, WebViewBuilder},
-};
-use wry::application::{
-    event::{Event, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
 };
 
 use async_std::task;

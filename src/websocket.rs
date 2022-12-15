@@ -2,9 +2,12 @@ use futures::future;
 use futures::prelude::*;
 use std::io::Error as IoError;
 
-use async_std::{task, net::{TcpListener, TcpStream}};
-use std::sync::mpsc::Sender;
+use async_std::{
+    net::{TcpListener, TcpStream},
+    task,
+};
 use async_tungstenite::{accept_async, client_async, tungstenite::Message};
+use std::sync::mpsc::Sender;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
     let ws_stream = accept_async(raw_stream).await.unwrap();
