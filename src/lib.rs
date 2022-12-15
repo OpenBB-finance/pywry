@@ -89,8 +89,10 @@ fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
                 }
                 _ => (),
             }
-        });
+        }),
     );
+
+    Ok(())
 }
 
 /// A Python module implemented in Rust.
