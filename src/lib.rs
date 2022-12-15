@@ -3,6 +3,10 @@
 
 use image::ImageFormat;
 use pyo3::prelude::*;
+use std::fs;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 use wry::{
     application::{
         dpi::LogicalSize,
@@ -13,76 +17,96 @@ use wry::{
     webview::WebViewBuilder,
 };
 
-/// A function to show the provided html in a WRY browser
-#[pyfunction]
-fn show_html(
-    html_content: String,
-    hide_output: Option<bool>,
-    title: Option<String>,
-    transparent: Option<bool>,
-    fullscreen: Option<bool>,
-    width: Option<u32>,
-    height: Option<u32>,
-) -> PyResult<String> {
-    let title = title.unwrap_or("PyWry - Star Us!".to_string());
-    let hide_output = hide_output.unwrap_or(false);
-    let transparent = transparent.unwrap_or(false);
-    let fullscreen = fullscreen.unwrap_or(false);
-    let width = width.unwrap_or(800);
-    let height = height.unwrap_or(600);
+use async_std::channel::unbounded;
+use async_std::task;
+use std::collections::HashMap;
+use test_wry_multi::run_server;
+use wry::{
+    application::{
+        event::{Event, StartCause, WindowEvent},
+        event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
+        window::{Window, WindowBuilder, WindowId},
+    },
+    webview::{WebView, WebViewBuilder},
+};
 
-    let bytes: Vec<u8> = include_bytes!("../assets/icon.png").to_vec();
-    let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png)
-        .unwrap()
-        .into_rgba8();
-    let (icon_width, icon_height) = imagebuffer.dimensions();
-    let icon_rgba = imagebuffer.into_raw();
+use std::{env, io::Error as IoError};
+async_std::channel::Sender
 
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_decorations(!transparent)
-        .with_transparent(transparent)
-        .with_fullscreen(if fullscreen {
-            Some(Fullscreen::Borderless(None))
-        } else {
-            None
-        })
-        .with_inner_size(LogicalSize::new(width, height))
-        .with_title(title)
-        // and then in the window initialization
-        .with_window_icon(Some(
-            Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap(),
-        ))
-        .build(&event_loop)
-        .unwrap();
-    let _webview = WebViewBuilder::new(window)
-        .unwrap()
-        .with_html(&html_content)
-        .unwrap()
-        .build()
-        .unwrap();
+#[pyclass]
+struct SendData(Sender);
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
 
-        match event {
-            Event::NewEvents(StartCause::Init) => {
-                if !hide_output {
-                    println!("Wry has started!");
-                }
+#[pymethods]
+impl SendData {
+    #[new]
+    fn new() -> Self {
+        sender, receiver = 
+        start();
+    }
+}
+
+
+// #[pyfunction]
+fn start() -> wry::Result<()> {
+    enum UserEvents {
+        CloseWindow(WindowId),
+        NewWindow(),
+    }
+
+    let event_loop = EventLoop::<UserEvents>::with_user_event();
+    let mut webviews = HashMap::new();
+    let proxy = event_loop.create_proxy();
+
+    let (tx, rx) = unbounded();
+
+    task::spawn(run_server(tx));
+
+    task::spawn(
+        event_loop.run(move |event, event_loop, control_flow| {
+            *control_flow = ControlFlow::Wait;
+
+            let response = rx.try_recv().unwrap_or_default();
+
+            if !response.is_empty() {
+                println!("Received: {}", response);
+                let new_window = create_new_window(
+                    format!("Window {}", webviews.len() + 1),
+                    response,
+                    &event_loop,
+                    proxy.clone(),
+                );
+                webviews.insert(new_window.0, new_window.1);
             }
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
-            _ => (),
-        }
-    });
+
+            match event {
+                Event::NewEvents(StartCause::Init) => println!("Wry application started!"),
+                Event::WindowEvent {
+                    event, window_id, ..
+                } => match event {
+                    WindowEvent::CloseRequested => {
+                        webviews.remove(&window_id);
+                        if webviews.is_empty() {
+                            *control_flow = ControlFlow::Exit
+                        }
+                    }
+                    _ => (),
+                },
+                Event::UserEvent(UserEvents::CloseWindow(id)) => {
+                    webviews.remove(&id);
+                    if webviews.is_empty() {
+                        *control_flow = ControlFlow::Exit
+                    }
+                }
+                _ => (),
+            }
+        });
+    );
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(show_html, m)?)?;
+    m.add_function(wrap_pyfunction!(start, m)?)?;
     Ok(())
 }
