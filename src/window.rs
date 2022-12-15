@@ -1,5 +1,5 @@
 use wry::application::{
-    event::{Event, StartCause, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 use wry::{
@@ -13,6 +13,7 @@ use wry::{
 use async_std::task;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
+use crate::websocket::run_server;
 
 enum UserEvents {
     CloseWindow(WindowId),
