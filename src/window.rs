@@ -1,4 +1,20 @@
-fn create_new_window(
+  use std::collections::HashMap;
+  use wry::{
+    application::{
+      event::{Event, StartCause, WindowEvent},
+      event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
+      window::{Window, WindowBuilder, WindowId},
+    },
+    webview::{WebView, WebViewBuilder},
+  };
+
+enum UserEvents {
+    CloseWindow(WindowId),
+    NewWindow(),
+}
+
+
+pub fn create_new_window(
     title: String,
     html: String,
     event_loop: &EventLoopWindowTarget<UserEvents>,
