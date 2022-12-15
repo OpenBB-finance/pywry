@@ -1,54 +1,45 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use image::ImageFormat;
 use pyo3::prelude::*;
-use std::fs;
-use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
 use wry::{
     application::{
-        dpi::LogicalSize,
         event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
-        window::{Fullscreen, Icon, WindowBuilder},
+        window::{WindowId},
     },
-    webview::WebViewBuilder,
 };
 
 use async_std::channel::unbounded;
 use async_std::task;
 use std::collections::HashMap;
-use test_wry_multi::run_server;
-use wry::{
-    application::{
-        event::{Event, StartCause, WindowEvent},
-        event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
-        window::{Window, WindowBuilder, WindowId},
-    },
-    webview::{WebView, WebViewBuilder},
-};
 
-use std::{env, io::Error as IoError};
-async_std::channel::Sender
+use async_std::channel::{Sender, Receiver};
+use server::run_server;
+use window::create_new_window;
+
+pub mod server;
+pub mod window;
 
 #[pyclass]
-struct SendData(Sender);
+struct SendData {
+    sender: Sender<String>
+}
 
 
 #[pymethods]
 impl SendData {
     #[new]
     fn new() -> Self {
-        sender, receiver = 
-        start();
+        let (sender, receiver) = unbounded();
+        start(sender, receiver);
+        Self { sender }
     }
 }
 
 
 // #[pyfunction]
-fn start() -> wry::Result<()> {
+fn start(sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
     enum UserEvents {
         CloseWindow(WindowId),
         NewWindow(),
@@ -58,15 +49,13 @@ fn start() -> wry::Result<()> {
     let mut webviews = HashMap::new();
     let proxy = event_loop.create_proxy();
 
-    let (tx, rx) = unbounded();
-
-    task::spawn(run_server(tx));
+    task::spawn(run_server(sender));
 
     task::spawn(
         event_loop.run(move |event, event_loop, control_flow| {
             *control_flow = ControlFlow::Wait;
 
-            let response = rx.try_recv().unwrap_or_default();
+            let response = receiver.try_recv().unwrap_or_default();
 
             if !response.is_empty() {
                 println!("Received: {}", response);
@@ -107,6 +96,6 @@ fn start() -> wry::Result<()> {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(start, m)?)?;
+    // m.add_function(wrap_pyfunction!(start, m)?)?;
     Ok(())
 }
