@@ -1,25 +1,18 @@
-use futures::prelude::*;
 use futures::future;
-use std::{
-    env,
-    io::Error as IoError,
-};
+use futures::prelude::*;
+use std::{env, io::Error as IoError};
 
+use async_std::channel::Sender;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::task;
-use async_std::channel::Sender;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
-    let ws_stream = async_tungstenite::accept_async(raw_stream)
-        .await
-        .unwrap();
+    let ws_stream = async_tungstenite::accept_async(raw_stream).await.unwrap();
     let (_, incoming) = ws_stream.split();
 
     let mut x = String::new();
     let broadcast_incoming = incoming
-        .try_filter(|msg| {
-            future::ready(!msg.is_close())
-        })
+        .try_filter(|msg| future::ready(!msg.is_close()))
         .try_for_each(|msg| {
             x = msg.to_text().unwrap().to_string();
             future::ok(())

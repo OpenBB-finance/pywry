@@ -1,16 +1,15 @@
-  use wry::{
+use wry::{
     application::{
-      event_loop::{EventLoopProxy, EventLoopWindowTarget},
-      window::{Window, WindowBuilder, WindowId},
+        event_loop::{EventLoopProxy, EventLoopWindowTarget},
+        window::{Window, WindowBuilder, WindowId},
     },
     webview::{WebView, WebViewBuilder},
-  };
+};
 
 pub enum UserEvents {
     CloseWindow(WindowId),
     NewWindow(),
 }
-
 
 pub fn create_new_window(
     title: String,
