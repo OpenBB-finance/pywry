@@ -41,11 +41,3 @@ class PyWry:
     @staticmethod
     def handle_start():
         PyWry.base.start()
-
-
-"""
-if __name__ == "__main__":
-    x = PyWry()
-    x.send_html("<h1>The first experiment</h1>")
-    x.send_html("<h1>Things are working</h1>")
-"""

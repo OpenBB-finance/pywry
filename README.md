@@ -11,7 +11,8 @@ To use just run the following:
 Basic Usage:
 ```python
 >>> import pywry
->>> pywry.show_html("OpenBB Tab", "<h1>Welcome to WRY with python</h1>", False)
+>>> handler = pywry.PyWry()
+>>> handler.send_html("<h1>Welcome to plotting in PyWry</h1>")
 
 ```
 Note: There is currently an issue if you try to run this inside an X86_64 conda
