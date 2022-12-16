@@ -10,3 +10,12 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
+dependencies = [
+    'websockets=10.4'
+]
+
+[project.optional-dependencies]
+dev = [
+    "maturin=0.14.6"
+]
