@@ -1,19 +1,22 @@
 import time
 import asyncio
 from multiprocessing import Process
-from websockets import connect
+from websockets.client import connect
 import pywry
 
-base = pywry.WindowManager()
 
 class PyWry:
+    base = pywry.WindowManager()
+
     def __init__(self):
-        self.port = base.get_port()
+        self.port = self.base.get_port()
         self.runner = Process(target=self.handle_start)
         self.runner.start()
         self.url = "ws://127.0.0.1:" + str(self.port)
-        # TODO: replace sleep with a check for the validity of websocket
-        time.sleep(3)
+        self.wait_for_connection()
+
+    def __del__(self):
+        self.runner.terminate()
 
     def send_html(self, html: str):
         asyncio.run(self.handle_html(html))
@@ -22,11 +25,22 @@ class PyWry:
         async with connect(self.url) as websocket:
             await websocket.send(html)
 
+    def wait_for_connection(self):
+        i = 0
+        while True:
+            try:
+                asyncio.run(self.handle_html("<test>"))
+                break
+            except ConnectionRefusedError as e:
+                i += 1
+                if i > 30:
+                    raise e
+                else:
+                    time.sleep(1)
+
     @staticmethod
     def handle_start():
-        base.start()
-
-    # TODO: kill process when class is exited
+        PyWry.base.start()
 
 
 if __name__ == "__main__":

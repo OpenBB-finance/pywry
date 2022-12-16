@@ -4,8 +4,8 @@ use wry::application::{
 };
 use wry::{
     application::{
-        event_loop::{EventLoopProxy, EventLoopWindowTarget},
-        window::{Window, WindowBuilder, WindowId},
+        event_loop::EventLoopWindowTarget,
+        window::{WindowBuilder, WindowId},
     },
     webview::{WebView, WebViewBuilder},
 };
@@ -15,50 +15,29 @@ use async_std::task;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 
-enum UserEvents {
-    CloseWindow(WindowId),
-    NewWindow(),
-}
-
 fn create_new_window(
     title: String,
     html: String,
-    event_loop: &EventLoopWindowTarget<UserEvents>,
-    proxy: EventLoopProxy<UserEvents>,
+    event_loop: &EventLoopWindowTarget<()>,
 ) -> (WindowId, WebView) {
     let window = WindowBuilder::new()
         .with_title(title)
         .build(event_loop)
         .unwrap();
     let window_id = window.id();
-    let handler = move |window: &Window, req: String| match req.as_str() {
-        "new-window" => {
-            let _ = proxy.send_event(UserEvents::NewWindow());
-        }
-        "close" => {
-            let _ = proxy.send_event(UserEvents::CloseWindow(window.id()));
-        }
-        _ if req.starts_with("change-title") => {
-            let title = req.replace("change-title:", "");
-            window.set_title(title.as_str());
-        }
-        _ => {}
-    };
 
     let webview = WebViewBuilder::new(window)
         .unwrap()
         .with_html(html)
         .unwrap()
-        .with_ipc_handler(handler)
         .build()
         .unwrap();
     (window_id, webview)
 }
 
 pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
-    let event_loop = EventLoop::<UserEvents>::with_user_event();
+    let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
-    let proxy = event_loop.create_proxy();
 
     task::spawn(run_server(port, sender));
 
@@ -73,7 +52,6 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
                 format!("Window {}", webviews.len() + 1),
                 response,
                 &event_loop,
-                proxy.clone(),
             );
             webviews.insert(new_window.0, new_window.1);
         }

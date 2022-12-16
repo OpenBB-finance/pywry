@@ -23,7 +23,9 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
 
     broadcast_incoming.await.unwrap();
     println!("Sending: {}", &x);
-    sender.send(x.clone()).unwrap();
+    if !&x.eq("<test>") {
+        sender.send(x.clone()).unwrap();
+    }
 }
 
 pub async fn run_server(port: u16, sender: Sender<String>) -> Result<(), IoError> {
