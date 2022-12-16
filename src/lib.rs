@@ -40,7 +40,7 @@ impl WindowManager {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _pywry(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<WindowManager>()?;
     Ok(())
 }
