@@ -10,6 +10,7 @@ pub mod ports;
 pub mod websocket;
 pub mod window;
 
+// #[pyclass(name = "MultiHostUrl", module = "pydantic_core._pydantic_core")]
 #[pyclass]
 struct WindowManager {
     port: u16,
@@ -40,7 +41,7 @@ impl WindowManager {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _pywry(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<WindowManager>()?;
     Ok(())
 }

@@ -2,11 +2,11 @@ import time
 import asyncio
 from multiprocessing import Process
 from websockets.client import connect
-from ._pywry import WindowManager
+from pywry import pywry
 
 
 class PyWry:
-    base = WindowManager()
+    base = pywry.WindowManager()
 
     def __init__(self):
         self.port = self.base.get_port()
