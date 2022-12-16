@@ -12,7 +12,7 @@ classifiers = [
 ]
 
 dependencies = [
-    'websockets==10.4'
+    'websockets==10.4',
 ]
 
 [project.optional-dependencies]
