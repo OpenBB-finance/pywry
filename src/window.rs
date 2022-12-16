@@ -66,6 +66,7 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
         *control_flow = ControlFlow::Wait;
 
         let response = receiver.try_recv().unwrap_or_default();
+        println!("Response: {}", response);
 
         if !response.is_empty() {
             println!("Received: {}", response);

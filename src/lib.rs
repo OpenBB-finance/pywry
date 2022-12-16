@@ -28,7 +28,7 @@ impl WindowManager {
 
     fn start(&self) -> PyResult<()> {
         let (sender, receiver) = mpsc::channel();
-        start_wry(self.port, sender, receiver);
+        start_wry(self.port, sender, receiver).unwrap();
         Ok(())
     }
 
