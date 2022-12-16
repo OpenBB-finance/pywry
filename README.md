@@ -1,8 +1,11 @@
 # Tauri Web Viewer
 
 To use just run the following:
-- `pip install maturin`
-- `maturin develop`
+- Install rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Create a virtual environment: `python -m venv .env`
+- Acitvate the environment: `source .env/bin/acticate`
+- Install dependencies: `pip install .[dev]`
+- Add the package into the environment: `maturin develop`
 
 
 Basic Usage:
