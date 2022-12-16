@@ -1,5 +1,7 @@
 # Tauri Web Viewer
 
+Easily create HTML webviewers in python utilizing the [yrw](https://github.com/tauri-apps/wry) library.
+
 To use just run the following:
 - Install rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Create a virtual environment: `python -m venv .env`
