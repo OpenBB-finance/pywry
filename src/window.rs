@@ -1,19 +1,15 @@
-use wry::application::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-};
-use wry::{
-    application::{
-        event_loop::EventLoopWindowTarget,
-        window::{WindowBuilder, WindowId},
-    },
-    webview::{WebView, WebViewBuilder},
-};
-
 use crate::websocket::run_server;
 use async_std::task;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
+use wry::{
+    application::{
+        event::{Event, WindowEvent},
+        event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
+        window::{WindowBuilder, WindowId},
+    },
+    webview::{WebView, WebViewBuilder},
+};
 
 fn create_new_window(
     title: String,
