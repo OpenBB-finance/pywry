@@ -1,6 +1,6 @@
-name: CI
+name: Pip
 
-on: ["release"]
+on: workflow_dispatch
 
 jobs:
   linux:
