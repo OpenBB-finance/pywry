@@ -45,6 +45,5 @@ class PyWry:
         else:
             return str(port)
 
-    @staticmethod
-    def handle_start():
-        PyWry.base.start()
+    def handle_start(self):
+        self.base.start()
