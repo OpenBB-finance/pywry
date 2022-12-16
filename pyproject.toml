@@ -20,8 +20,6 @@ dev = [
     "maturin==0.14.6"
 ]
 
-[package.metadata.maturin]
-name = "pywry._pywry"
-
 [tool.maturin]
 bindings = 'pyo3'
+python-source = "python"
