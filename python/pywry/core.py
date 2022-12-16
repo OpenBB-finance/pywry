@@ -118,6 +118,5 @@ class PyWry:
     def get_plotly_html(self) -> Path:
         return Path(__file__).parent.resolve() / "assets" / "plotly.html"
 
-    @staticmethod
-    def handle_start():
-        PyWry.base.start()
+    def handle_start(self):
+        self.base.start()
