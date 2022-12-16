@@ -63,10 +63,9 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
     task::spawn(run_server(port, sender));
 
     event_loop.run(move |event, event_loop, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
 
         let response = receiver.try_recv().unwrap_or_default();
-        println!("Response: {}", response);
 
         if !response.is_empty() {
             println!("Received: {}", response);
