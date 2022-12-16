@@ -10,7 +10,6 @@ pub mod ports;
 pub mod websocket;
 pub mod window;
 
-// #[pyclass(name = "MultiHostUrl", module = "pydantic_core._pydantic_core")]
 #[pyclass]
 struct WindowManager {
     port: u16,

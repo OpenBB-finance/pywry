@@ -9,7 +9,7 @@ class PyWry:
     base = pywry.WindowManager()
 
     def __init__(self):
-        self.port = self.base.get_port()
+        self.port = self.get_clean_port()
         self.runner = Process(target=self.handle_start)
         self.runner.start()
         self.url = "ws://127.0.0.1:" + str(self.port)
@@ -37,6 +37,13 @@ class PyWry:
                     raise e
                 else:
                     time.sleep(1)
+
+    def get_clean_port(self) -> str:
+        port = self.base.get_port()
+        if port == 0:
+            raise ConnectionError("Could not connect to a port")
+        else:
+            return str(port)
 
     @staticmethod
     def handle_start():
