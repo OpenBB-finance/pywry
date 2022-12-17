@@ -26,6 +26,8 @@ jobs:
         run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
       - name: Adding cargo to path
         run: export PATH="$HOME/.cargo/bin:$PATH"
+      - name: Check Rustup
+        run: rustup -h
       - name: Check Cargo
         run: cargo -h
       - name: Show Directories
