@@ -60,7 +60,8 @@ class PyWry:
         self.loop = loop
 
     def __del__(self):
-        self.runner.terminate()
+        if self.runner:
+            self.runner.terminate()
 
     def send_fig(self, fig: go.Figure):
         """Send figure to qt_backend.

@@ -2,11 +2,11 @@ use futures::future;
 use futures::prelude::*;
 use std::io::Error as IoError;
 
-use async_std::{
+use tokio::{
     net::{TcpListener, TcpStream},
     task,
 };
-use async_tungstenite::accept_async;
+use tokio_tungstenite::{accept_async};
 use std::sync::mpsc::Sender;
 
 async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {

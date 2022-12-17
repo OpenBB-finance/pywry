@@ -13,6 +13,7 @@ classifiers = [
 
 dependencies = [
     'websockets==10.4',
+    'plotly==5.11.0',
 ]
 
 [project.optional-dependencies]
