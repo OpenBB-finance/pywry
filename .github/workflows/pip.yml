@@ -22,12 +22,8 @@ jobs:
           apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev sudo -y # libayatana-appindicator3-dev
       - name: Install Maturin
         run: sudo python3.8 -m pip install maturin
-      - uses: PyO3/maturin-action@v1
-        with:
-          # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
-          manylinux: off
-          command: build
-          args: --release --sdist -o dist --find-interpreter
+      - name: run build
+        run: maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
