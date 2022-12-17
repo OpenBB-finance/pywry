@@ -22,7 +22,7 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) {
         });
 
     broadcast_incoming.await.unwrap();
-    println!("Sending: {}", &x);
+    println!("Sending JSON");
     if !&x.eq("<test>") {
         sender.send(x.clone()).unwrap();
     }
