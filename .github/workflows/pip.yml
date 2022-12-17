@@ -28,8 +28,6 @@ jobs:
         run: . "$HOME/.cargo/env"
       - name: Show Directories
         run: ls -a
-      - name: Develop
-        run: python3.8 -m maturin develop
       - name: run build
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
