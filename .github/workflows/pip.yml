@@ -25,7 +25,7 @@ jobs:
       - name: Installing rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Adding cargo to path
-        run: source "$HOME/.cargo/env"
+        run: . "$HOME/.cargo/env"
       - name: run build
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
