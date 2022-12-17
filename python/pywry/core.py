@@ -3,33 +3,8 @@ import json
 from multiprocessing import Process
 from pathlib import Path
 
-from plotly import graph_objects as go
 from pywry import pywry
 from websockets.client import connect
-
-
-class PlotsBackendError(Exception):
-    """Base class for exceptions in this module."""
-
-    def __init__(self):
-        self.message = "We've encountered an error while trying to start the Plots backend. Please try again."
-        super().__init__(self.message)
-
-
-def process_plotly_figure(figure: go.Figure):
-
-    style = figure.layout.template.layout.mapbox.style
-
-    if (bg_color := "#111111" if style == "dark" else "white") == "#111111":
-        figure.update_layout(
-            newshape_line_color="gold",
-            modebar=dict(
-                orientation="v", bgcolor=bg_color, color="gold", activecolor="#d1030d"
-            ),
-        )
-    figure.update_layout(dragmode="pan")
-
-    return figure
 
 
 class PyWry:
@@ -63,21 +38,6 @@ class PyWry:
         if self.runner:
             self.runner.terminate()
 
-    def send_fig(self, fig: go.Figure):
-        """Send figure to qt_backend.
-
-        Parameters
-        ----------
-        fig : go.Figure
-            Plotly figure to send to qt_backend.
-        """
-        self.check_backend()
-
-        fig = process_plotly_figure(fig)
-        self.loop.create_task(
-            self.send(json.dumps({"plotly": fig.to_dict(), "html": self.plotly}))
-        )
-
     def send_html(self, html: str, title: str = ""):
         """Send html to qt_backend.
 
@@ -95,7 +55,7 @@ class PyWry:
             # If the backend is not running and we have tried to connect
             # max_retries times, we raise an error as a fallback to prevent
             # the user from not seeing any plots
-            raise PlotsBackendError
+            raise ConnectionError("Exceeded max retries")
         try:
             self.loop.run_until_complete(self.send())
         except ConnectionRefusedError:
