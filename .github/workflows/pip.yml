@@ -19,7 +19,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apt-get update -y
-          apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev -y # libayatana-appindicator3-dev
+          apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev sudo -y # libayatana-appindicator3-dev
       - name: Install Maturin
         run: sudo /opt/python/cp38-cp38 -m pip install maturin
       - uses: PyO3/maturin-action@v1
