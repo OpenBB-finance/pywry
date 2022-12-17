@@ -26,6 +26,8 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Adding cargo to path
         run: . "$HOME/.cargo/env"
+      - name: Show Directories
+        run: ls -a
       - name: run build
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
