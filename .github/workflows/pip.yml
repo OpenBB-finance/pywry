@@ -20,7 +20,7 @@ jobs:
           apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev -y # libayatana-appindicator3-dev
           apt-get install software-properties-common -y
           add-apt-repository ppa:deadsnakes/ppa -y
-          apt install python3.8 -y
+          apt-get install python3.8 -y
       - uses: PyO3/maturin-action@v1
         with:
           # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
