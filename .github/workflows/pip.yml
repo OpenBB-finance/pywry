@@ -23,7 +23,7 @@ jobs:
       - name: Install Maturin
         run: sudo python3.8 -m pip install maturin
       - name: Installing rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
       - name: Adding cargo to path
         run: export PATH="$HOME/.cargo/bin:$PATH"
       - name: Check Cargo
