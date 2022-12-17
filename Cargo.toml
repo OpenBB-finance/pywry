@@ -15,7 +15,7 @@ wry = {  git = "https://github.com/tauri-apps/wry" }
 image = {version="0.24.5", default-features = false, features = ["png"] }
 futures = "0.3"
 tokio-tungstenite = "0.18"
-tokio = { version = "1.23.0", features = ["rt"] }
+tokio = { version = "1.23.0", features = ["rt", "rt-multi-thread"] }
 futures-util = { version="0.3.25", feautres=["stream"]}
 derive_builder = "0.12.0"
 serde = { version = "1.0", features = ["derive"] }

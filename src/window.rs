@@ -11,6 +11,7 @@ use wry::{
     },
     webview::{WebView, WebViewBuilder},
 };
+use tokio::runtime::Runtime;
 
 fn create_new_window(
     html: String,
@@ -67,8 +68,9 @@ fn create_new_window(
 pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
     let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
+    let rt  = Runtime::new().unwrap();
 
-    task::spawn(run_server(port, sender));
+    rt.block_on(async {task::spawn(run_server(port, sender))});
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Poll;
