@@ -17,7 +17,9 @@ jobs:
       - name: Install Dependencies
         run: |
           apt-get update -y
-          apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev python3.8-dev -y # libayatana-appindicator3-dev
+          add-apt-repository universe
+          add-apt-repository restricted
+          apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev python3.8-dev -y # libayatana-appindicator3-dev
           # apt-get install software-properties-common -y
           # add-apt-repository ppa:deadsnakes/ppa -y
           # apt-get install python3.8 -y
