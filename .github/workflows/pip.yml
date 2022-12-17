@@ -5,7 +5,9 @@ on: workflow_dispatch
 jobs:
   manylinux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux_2_24_x86_64
+    container:
+      image: quay.io/pypa/manylinux_2_24_x86_64
+      options: --user root
     steps:
       - name: investigate
         run: |
