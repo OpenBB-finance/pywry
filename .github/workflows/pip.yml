@@ -29,6 +29,8 @@ jobs:
       - name: Show Directories
         run: ls -a
       - name: run build
+      - name: Develop
+        run: maturin develop
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v3
