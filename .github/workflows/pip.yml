@@ -3,13 +3,20 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  linux:
-    runs-on: ubuntu-18.04
+  manylinux:
+    runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux2010_x86_64:latest
+      options: --user root
     steps:
+      - name: investigate
+        run: |
+          pwd
+          whoami
+          ls -la
+          id -u
     - uses: actions/checkout@v3
-    - name:
+    - name: Install Dependencies
       run: |
         sudo apt-get update -y
         sudo apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev libayatana-appindicator3-dev
