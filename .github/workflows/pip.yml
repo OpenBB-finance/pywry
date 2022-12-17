@@ -16,8 +16,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev libayatana-appindicator3-dev
+          apt-get update -y
+          apt-get install -y webkit2gtk-4.0 libgtksourceview-3.0-dev libayatana-appindicator3-dev
       - uses: PyO3/maturin-action@v1
         with:
           # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
