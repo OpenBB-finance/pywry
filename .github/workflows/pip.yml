@@ -18,6 +18,8 @@ jobs:
         run: |
           apt-get update -y
           apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev -y # libayatana-appindicator3-dev
+      - name: Install Maturin
+        run: pip install maturin
       - uses: PyO3/maturin-action@v1
         with:
           # Having manylinux off only compiles on this Ubuntu, which is bad but lets us use dependencies
