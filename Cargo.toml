@@ -15,5 +15,5 @@ wry = {  git = "https://github.com/tauri-apps/wry" }
 image = {version="0.24.5", default-features = false, features = ["png"] }
 futures = "0.3"
 async-tungstenite = "0.19"
-async-std = "1.12"
+async-std = "1.11"
 futures-util = { version="0.3.25", feautres=["stream"]}
