@@ -26,6 +26,8 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Adding cargo to path
         run: . "$HOME/.cargo/env"
+      - name: Adding cargo to path
+        run: source "$HOME/.cargo/env"
       - name: Check Cargo
         run: cargo -h
       - name: Show Directories
