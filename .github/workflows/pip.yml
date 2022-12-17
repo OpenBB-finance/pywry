@@ -25,9 +25,7 @@ jobs:
       - name: Installing rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Adding cargo to path
-        run: . "$HOME/.cargo/env"
-      - name: Adding cargo to path
-        run: sudo -s && source "$HOME/.cargo/env"
+        run: export PATH="$HOME/.cargo/bin:$PATH"
       - name: Check Cargo
         run: cargo -h
       - name: Show Directories
