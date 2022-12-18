@@ -24,8 +24,7 @@ jobs:
           which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
           export PATH="$HOME/.cargo/bin:$PATH"
           cargo -h
-      - name: run build
-        run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
+          python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
