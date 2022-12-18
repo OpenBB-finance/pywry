@@ -31,7 +31,7 @@ jobs:
       - name: Show Directories
         run: ls -a
       - name: Go down a directory
-        run: cd $HOME/.cargo
+        run: ls -a $HOME
       - name: See directory
         run: ls -a
       - name: Check Cargo
