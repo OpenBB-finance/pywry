@@ -2,22 +2,25 @@ use futures::future;
 use futures::prelude::*;
 use std::io::Error as IoError;
 
+use std::sync::mpsc::Sender;
 use tokio::{
     net::{TcpListener, TcpStream},
     task,
 };
 use tokio_tungstenite::{accept_async, tungstenite::error::Error};
-use std::sync::mpsc::Sender;
 
 enum ConnectionError {
     Tungstenite(Error),
-    MSPC(String)
+    MSPC(String),
 }
 
-async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) -> Result<(), ConnectionError> {
+async fn handle_connection(
+    sender: Sender<String>,
+    raw_stream: TcpStream,
+) -> Result<(), ConnectionError> {
     let ws_stream = match accept_async(raw_stream).await {
         Err(err) => return Err(ConnectionError::Tungstenite(err)),
-        Ok(stream) => stream
+        Ok(stream) => stream,
     };
     let (_, incoming) = ws_stream.split();
 
@@ -30,11 +33,11 @@ async fn handle_connection(sender: Sender<String>, raw_stream: TcpStream) -> Res
         });
 
     if let Err(error) = broadcast_incoming.await {
-        return Err(ConnectionError::Tungstenite(error))
+        return Err(ConnectionError::Tungstenite(error));
     }
     if !&x.eq("<test>") {
         if let Err(error) = sender.send(x.clone()) {
-            return Err(ConnectionError::MSPC(error.0))
+            return Err(ConnectionError::MSPC(error.0));
         }
     }
     Ok(())

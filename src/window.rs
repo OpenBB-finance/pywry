@@ -1,7 +1,11 @@
 use crate::websocket::run_server;
+use std::{
+    collections::HashMap,
+    fs,
+    sync::mpsc::{Receiver, Sender},
+};
+use tokio::runtime::Runtime;
 use tokio::task;
-use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, Sender};
 use wry::{
     application::{
         dpi::LogicalSize,
@@ -11,7 +15,6 @@ use wry::{
     },
     webview::{WebView, WebViewBuilder},
 };
-use tokio::runtime::Runtime;
 
 fn create_new_window(
     html: String,
@@ -19,26 +22,28 @@ fn create_new_window(
     figure: serde_json::Value,
     event_loop: &EventLoopWindowTarget<()>,
 ) -> (WindowId, WebView) {
-
     if !figure.is_null() {
-
         let title: String = "OpenBB - ".to_string()
             + &figure["layout"]["title"]["text"]
                 .as_str()
                 .unwrap_or("Plots");
 
-        let width: u32 = figure["layout"]["width"].as_u64().unwrap_or(800) as u32;
-        let height: u32 = figure["layout"]["height"].as_u64().unwrap_or(600) as u32;
+        let raw_width = figure["layout"]["width"].as_u64().unwrap_or(800);
+        let raw_height = figure["layout"]["height"].as_u64().unwrap_or(600);
+        let width = u32::try_from(raw_width).unwrap_or(800);
+        let height = u32::try_from(raw_height).unwrap_or(600);
 
-        let html = std::fs::read_to_string(html).unwrap().replace("\"{{figure_json}}\"", &figure.to_string());
+        let html = fs::read_to_string(html)
+            .unwrap_or_default()
+            .replace("\"{{figure_json}}\"", &figure.to_string());
 
         let window = WindowBuilder::new()
             .with_inner_size(LogicalSize::new(width + 80, height + 80))
             .with_title(title)
             .build(event_loop)
             .unwrap();
-        let window_id = window.id();
 
+        let window_id = window.id();
         let webview = WebViewBuilder::new(window)
             .unwrap()
             .with_html(html)
@@ -46,15 +51,13 @@ fn create_new_window(
             .build()
             .unwrap();
         (window_id, webview)
-
     } else {
-
         let window = WindowBuilder::new()
             .with_title(title)
             .build(event_loop)
             .unwrap();
-        let window_id = window.id();
 
+        let window_id = window.id();
         let webview = WebViewBuilder::new(window)
             .unwrap()
             .with_html(html)
@@ -68,9 +71,9 @@ fn create_new_window(
 pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
     let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
-    let rt  = Runtime::new().unwrap();
+    let rt = Runtime::new().unwrap();
 
-    rt.block_on(async {task::spawn(run_server(port, sender))});
+    rt.block_on(async { task::spawn(run_server(port, sender)) });
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Poll;

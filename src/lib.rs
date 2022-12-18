@@ -1,5 +1,5 @@
-#![allow(non_snake_case)]
-#![allow(non_camel_case_types)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+// #![allow()]
 
 use ports::get_available_port;
 use pyo3::prelude::*;
