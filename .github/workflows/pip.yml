@@ -20,22 +20,10 @@ jobs:
         run: |
           apt-get update -y
           apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev sudo -y # libayatana-appindicator3-dev
-      - name: Install Maturin
-        run: sudo python3.8 -m pip install maturin
-      - name: Installing rust
-        run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-      - name: Adding cargo to path
-        run: export PATH="$HOME/.cargo/bin:$PATH"
-      - name: See Path
-        run: echo "$PATH"
-      - name: Show Directories
-        run: ls -a
-      - name: Go down a directory
-        run: ls -a $HOME
-      - name: See directory
-        run: ls -a
-      - name: Check Cargo
-        run: cargo -h
+          sudo python3.8 -m pip install maturin
+          which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo -h
       - name: run build
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
