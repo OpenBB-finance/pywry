@@ -30,12 +30,12 @@ jobs:
         run: echo "$PATH"
       - name: Show Directories
         run: ls -a
-      - name: Check Cargo
-        run: cargo -h
       - name: Go down a directory
         run: cd .. && pwd
       - name: See directory
         run: ls -a
+      - name: Check Cargo
+        run: cargo -h
       - name: run build
         run: python3.8 -m maturin build --release --sdist -o dist --find-interpreter
       - name: Upload wheels
