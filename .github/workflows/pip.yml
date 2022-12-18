@@ -6,7 +6,7 @@ jobs:
   manylinux:
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux_2_24_x86_64
+      image: quay.io/pypa/manylinux_2_28_x86_64
       options: --user root
     steps:
       - name: investigate
