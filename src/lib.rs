@@ -1,5 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
-// #![allow()]
+#![allow(clippy::missing_errors_doc, clippy::must_use_candidate)]
 
 use ports::get_available_port;
 use pyo3::prelude::*;
@@ -19,10 +19,7 @@ struct WindowManager {
 impl WindowManager {
     #[new]
     fn new() -> Self {
-        let target_port = match get_available_port() {
-            None => 0,
-            Some(port) => port,
-        };
+        let target_port = get_available_port().map_or(0, |port| port);
         Self { port: target_port }
     }
 
@@ -32,8 +29,7 @@ impl WindowManager {
         Ok(())
     }
 
-    // TODO: find a better way to do this
-    fn get_port(&self) -> u16 {
+    const fn get_port(&self) -> u16 {
         self.port
     }
 }

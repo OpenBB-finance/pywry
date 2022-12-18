@@ -11,7 +11,7 @@ use tokio_tungstenite::{accept_async, tungstenite::error::Error};
 
 enum ConnectionError {
     Tungstenite(Error),
-    MSPC(String),
+    Mspc(String),
 }
 
 async fn handle_connection(
@@ -37,7 +37,7 @@ async fn handle_connection(
     }
     if !&x.eq("<test>") {
         if let Err(error) = sender.send(x.clone()) {
-            return Err(ConnectionError::MSPC(error.0));
+            return Err(ConnectionError::Mspc(error.0));
         }
     }
     Ok(())

@@ -19,12 +19,12 @@ use wry::{
 fn create_new_window(
     html: String,
     title: String,
-    figure: serde_json::Value,
+    figure: &serde_json::Value,
     event_loop: &EventLoopWindowTarget<()>,
 ) -> (WindowId, WebView) {
     if !figure.is_null() {
         let title: String = "OpenBB - ".to_string()
-            + &figure["layout"]["title"]["text"]
+            + figure["layout"]["title"]["text"]
                 .as_str()
                 .unwrap_or("Plots");
 
@@ -88,7 +88,7 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
             let title: String = json["title"].as_str().unwrap_or("").to_string();
             let figure: serde_json::Value = json["plotly"].clone();
 
-            let new_window = create_new_window(html, title, figure, &event_loop);
+            let new_window = create_new_window(html, title, &figure, event_loop);
             webviews.insert(new_window.0, new_window.1);
         }
 
@@ -99,7 +99,7 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
             if event == WindowEvent::CloseRequested {
                 webviews.remove(&window_id);
                 if webviews.is_empty() {
-                    *control_flow = ControlFlow::Exit
+                    *control_flow = ControlFlow::Exit;
                 }
             }
         }
