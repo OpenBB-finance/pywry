@@ -102,9 +102,9 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
         {
             if event == WindowEvent::CloseRequested {
                 webviews.remove(&window_id);
-                if webviews.is_empty() {
-                    *control_flow = ControlFlow::Exit;
-                }
+                //if webviews.is_empty() {
+                //    *control_flow = ControlFlow::Exit;
+                //}
             }
         }
     });
