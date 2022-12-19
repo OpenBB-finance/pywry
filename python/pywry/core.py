@@ -1,8 +1,8 @@
 import asyncio
-import time
 import json
+import threading
 from multiprocessing import Process
-from pathlib import Path
+from typing import List
 
 from pywry import pywry
 from websockets.client import connect
@@ -20,73 +20,112 @@ class PyWry:
 
     def __init__(self, max_retries: int = 30):
         self.max_retries = max_retries
-        self.plotly = str(self.get_plotly_html()) or ""
+
+        self.outgoing: List[str] = []
+        self.init_engine: List[str] = []
+
+        self.started = False
+        self.runner: Process = None
+        self.thread: threading.Thread = None
 
         self.port = self.get_clean_port()
-        self.runner: Process = Process(target=self.handle_start, daemon=True)
-        self.runner.start()
-        self.url = "ws://127.0.0.1:" + str(self.port)
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        self.loop = loop
-
-    def __del__(self):
-        if self.runner:
-            self.runner.terminate()
+        self.url = f"ws://127.0.0.1:{self.port}"
 
     def send_html(self, html: str, title: str = ""):
-        """Send html to qt_backend.
+        """Send html to backend.
 
         Parameters
         ----------
         html : str
-            HTML to send to qt_backend.
+            HTML to send to backend.
+        title : str, optional
+            Title to display in the window, by default ""
         """
         self.check_backend()
-        asyncio.run(self.send(json.dumps({"html": html, "title": title})))
+        self.outgoing.append(json.dumps({"html": html, "title": title}))
 
     def check_backend(self):
         """Check if the backend is running."""
         if self.max_retries == 0:
             # If the backend is not running and we have tried to connect
-            # max_retries times, we raise an error as a fallback to prevent
-            # the user from not seeing any plots
-            """
-            self.runner.terminate()
-            self.port = self.get_clean_port()
-            self.runner: Process = Process(target=self.handle_start, daemon=True)
-            self.runner.start()
-            """
+            # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
-        try:
-            self.loop.run_until_complete(self.send())
-            self.max_retries = 10
-        except ConnectionRefusedError:
-            self.max_retries -= 1
-            time.sleep(0.1)
-            self.check_backend()
 
-    async def send(self, data: str = "<test>"):
-        """Send data to the backend."""
-        async with connect(self.url) as websocket:
-            await asyncio.sleep(1)
-            await websocket.send(data)
+        if not self.started:
+            print("Starting backend")
+            self.handle_start()
+
+        if self.thread and not self.thread.is_alive():
+            self.start()
 
     def get_clean_port(self) -> str:
         port = self.base.get_port()
-        print("Port:", port)
         if port == 0:
             raise ConnectionError("Could not connect to a port")
         else:
             return str(port)
 
-    def get_plotly_html(self) -> Path:
-        return Path(__file__).parent.resolve() / "assets" / "plotly.html"
-
     def handle_start(self):
-        self.base.start()
+        try:
+            self.runner = Process(target=start_backend, daemon=True)
+            self.runner.start()
+            self.started = True
+        except Exception as e:
+            print(e)
+            self.started = False
+
+    async def connect(self):
+        """Connects to backend and maintains the connection until main thread is closed."""
+        try:
+            async with connect(
+                self.url,
+                open_timeout=6,
+                timeout=1,
+                ssl=None,
+            ) as websocket:
+                if self.init_engine:
+                    # if there is data in the init_engine list, we send it to the backend
+                    # and clear the list
+                    for msg in self.init_engine:
+                        await websocket.send(msg)
+                    self.init_engine = []
+
+                while True:
+                    if self.outgoing:
+                        data = self.outgoing.pop(0)
+                        self.init_engine.append(data)
+
+                        await websocket.send(data)
+                        self.init_engine = []
+
+                    await asyncio.sleep(0.1)
+
+        except Exception as exc:
+            if self.max_retries == 0:
+                raise ConnectionError("Exceeded max retries") from exc
+
+            self.max_retries -= 1
+            await self.connect()
+
+    def start(self):
+        """Connect to backend in a separate thread."""
+        self.check_backend()
+        self.thread = threading.Thread(
+            target=asyncio.run, args=(self.connect(),), daemon=True
+        )
+        self.thread.start()
+
+
+def start_backend():
+    """Start the backend."""
+    try:
+        import ctypes  # pylint: disable=import-outside-toplevel
+
+        # We need to set an app id so that the taskbar icon is correct on Windows
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("openbb")
+    except (AttributeError, ImportError):
+        pass
+    except OSError:
+        pass
+    backend = PyWry()
+    backend.base.start()
