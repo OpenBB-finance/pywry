@@ -13,7 +13,7 @@ jobs:
       - name: Install Dependencies
         run: |
           yum update -y
-          yum install gtk3-devel libsoup-devel webkit2gtk3-devel -y
+          yum install gtk3-devel libsoup-devel webkit2gtk3-devel sudo -y
           sudo python3.8 -m pip install maturin
           which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
           export PATH="$HOME/.cargo/bin:$PATH"
