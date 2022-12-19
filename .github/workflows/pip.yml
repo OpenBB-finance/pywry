@@ -4,7 +4,6 @@ on: workflow_dispatch
 
 jobs:
   manylinux:
-    if: ${{ false }}
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux_2_24_x86_64
