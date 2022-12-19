@@ -85,10 +85,14 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
             let json: serde_json::Value = serde_json::from_str(&response).unwrap_or_default();
 
             let html: String = json["html"].as_str().unwrap_or("").to_string();
+            println!("HTML: {}", html);
             let title: String = json["title"].as_str().unwrap_or("").to_string();
+            println!("Title: {}", html);
             let figure: serde_json::Value = json["plotly"].clone();
+            println!("Figure: {}", html);
 
             let new_window = create_new_window(html, title, figure, &event_loop);
+            println!("Created new window");
             webviews.insert(new_window.0, new_window.1);
         }
 
