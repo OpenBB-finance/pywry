@@ -4,9 +4,13 @@ on: workflow_dispatch
 
 jobs:
   manylinux:
+    strategy:
+      fail-fast: false
+      matrix:
+        processor: [ x86_64, aarch64, ppc64le, s390x ]
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux_2_28_x86_64
+      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
       options: --user root
     steps:
       - uses: actions/checkout@v2
