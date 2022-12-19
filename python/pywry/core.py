@@ -1,4 +1,5 @@
 import asyncio
+import time
 import json
 from multiprocessing import Process
 from pathlib import Path
@@ -47,7 +48,7 @@ class PyWry:
             HTML to send to qt_backend.
         """
         self.check_backend()
-        self.loop.create_task(self.send(json.dumps({"html": html, "title": title})))
+        asyncio.run(self.send(json.dumps({"html": html, "title": title})))
 
     def check_backend(self):
         """Check if the backend is running."""
@@ -55,11 +56,19 @@ class PyWry:
             # If the backend is not running and we have tried to connect
             # max_retries times, we raise an error as a fallback to prevent
             # the user from not seeing any plots
+            """
+            self.runner.terminate()
+            self.port = self.get_clean_port()
+            self.runner: Process = Process(target=self.handle_start, daemon=True)
+            self.runner.start()
+            """
             raise ConnectionError("Exceeded max retries")
         try:
             self.loop.run_until_complete(self.send())
+            self.max_retries = 10
         except ConnectionRefusedError:
             self.max_retries -= 1
+            time.sleep(0.1)
             self.check_backend()
 
     async def send(self, data: str = "<test>"):

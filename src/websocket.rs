@@ -36,7 +36,9 @@ async fn handle_connection(
         return Err(ConnectionError::Tungstenite(error));
     }
     if !&x.eq("<test>") {
+        println!("Sent response");
         if let Err(error) = sender.send(x.clone()) {
+            println!("Error sending response");
             return Err(ConnectionError::Mspc(error.0));
         }
     }
