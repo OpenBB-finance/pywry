@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apt-get update -y
-          apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev sudo libgdk-pixbuf2.0-0_2.36.8* -y # libayatana-appindicator3-dev
+          apt-get install webkit2gtk-4.0 libgtksourceview-3.0-dev sudo libgdk-pixbuf2.0-common -y # libayatana-appindicator3-dev
           sudo python3.8 -m pip install maturin
           which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
           export PATH="$HOME/.cargo/bin:$PATH"
