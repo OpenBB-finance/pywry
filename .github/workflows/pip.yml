@@ -7,14 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        processor: [ x86_64, aarch64, ppc64le, s390x ]
+        processor: [ x86_64 ] # , aarch64, ppc64le, s390x
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
       options: --user root
     steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v1
       - uses: actions/checkout@v2
       - name: Install Dependencies
         run: |
