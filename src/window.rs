@@ -88,7 +88,7 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
             let title: String = json["title"].as_str().unwrap_or("").to_string();
             let figure: serde_json::Value = json["plotly"].clone();
 
-            let new_window = create_new_window(html, title, &figure, event_loop);
+            let new_window = create_new_window(html, title, figure, event_loop);
             webviews.insert(new_window.0, new_window.1);
         }
 
