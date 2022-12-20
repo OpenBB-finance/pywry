@@ -40,7 +40,7 @@ async fn handle_connection(
     while let Some(msg) = ws_stream.next().await {
         let msg = msg?;
         if msg.is_text() || msg.is_binary() {
-            println!("Message: {}", msg);
+            println!("Message received");
             let msg_str = msg.to_text().unwrap();
             if !&msg_str.eq("<test>") {
                 sender.send(msg_str.to_string()).unwrap();
