@@ -4,8 +4,7 @@ use std::{
     fs,
     sync::mpsc::{Receiver, Sender},
 };
-use tokio::runtime::Runtime;
-use tokio::task;
+use tokio::{runtime::Runtime, task};
 use wry::{
     application::{
         dpi::LogicalSize,

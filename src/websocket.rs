@@ -1,23 +1,10 @@
-use futures::future;
-use futures::prelude::*;
-use std::io::Error as IoError;
-
 use futures_util::{SinkExt, StreamExt};
-use std::net::SocketAddr;
-use std::sync::mpsc::Sender;
-use tokio::{
-    net::{TcpListener, TcpStream},
-    task,
-};
+use std::{io::Error as IoError, net::SocketAddr, sync::mpsc::Sender};
+use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
     accept_async,
     tungstenite::{Error, Result},
 };
-
-enum ConnectionError {
-    Tungstenite(Error),
-    Mspc(String),
-}
 
 async fn accept_connection(peer: SocketAddr, stream: TcpStream, sender: Sender<String>) {
     if let Err(e) = handle_connection(peer, stream, sender).await {
@@ -48,7 +35,6 @@ async fn handle_connection(
             }
         }
     }
-
     Ok(())
 }
 
