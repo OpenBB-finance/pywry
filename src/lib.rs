@@ -7,6 +7,7 @@ use std::sync::mpsc;
 use window::start_wry;
 
 pub mod ports;
+pub mod structs;
 pub mod websocket;
 pub mod window;
 

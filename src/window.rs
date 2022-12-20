@@ -1,82 +1,43 @@
-use crate::websocket::run_server;
+use crate::{structs::Showable, websocket::run_server};
 use std::{
     collections::HashMap,
-    fs,
     sync::mpsc::{Receiver, Sender},
 };
-use image::ImageFormat;
 use tokio::{runtime::Runtime, task};
-use std::fs::read;
 use wry::{
     application::{
         dpi::LogicalSize,
         event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-        window::{WindowBuilder, WindowId, Icon},
+        window::{WindowBuilder, WindowId},
     },
     webview::{WebView, WebViewBuilder},
 };
 
 fn create_new_window(
-    html: String,
-    title: String,
-    icon: &str,
-    figure: serde_json::Value,
+    to_show: Showable,
     event_loop: &EventLoopWindowTarget<()>,
 ) -> (WindowId, WebView) {
-    if !figure.is_null() {
-        let title: String = "OpenBB - ".to_string()
-            + figure["layout"]["title"]["text"]
-                .as_str()
-                .unwrap_or("Plots");
+    let mut pre_window = WindowBuilder::new()
+        .with_title(to_show.title)
+        .with_window_icon(to_show.icon);
 
-        let raw_width = figure["layout"]["width"].as_u64().unwrap_or(800);
-        let raw_height = figure["layout"]["height"].as_u64().unwrap_or(600);
-        let width = u32::try_from(raw_width).unwrap_or(800);
-        let height = u32::try_from(raw_height).unwrap_or(600);
-        let bytes: Vec<u8> = read(icon).unwrap();
-        let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png)
-            .unwrap()
-            .into_rgba8();
-        let (icon_width, icon_height) = imagebuffer.dimensions();
-        let icon_rgba = imagebuffer.into_raw();
-
-        let html = fs::read_to_string(html)
-            .unwrap_or_default()
-            .replace("\"{{figure_json}}\"", &figure.to_string());
-
-        let window = WindowBuilder::new()
-            .with_inner_size(LogicalSize::new(width + 80, height + 80))
-            .with_title(title)
-            .with_window_icon(Some(
-                Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap(),
-            ))
-            .build(event_loop)
-            .unwrap();
-
-        let window_id = window.id();
-        let webview = WebViewBuilder::new(window)
-            .unwrap()
-            .with_html(html)
-            .unwrap()
-            .build()
-            .unwrap();
-        (window_id, webview)
-    } else {
-        let window = WindowBuilder::new()
-            .with_title(title)
-            .build(event_loop)
-            .unwrap();
-
-        let window_id = window.id();
-        let webview = WebViewBuilder::new(window)
-            .unwrap()
-            .with_html(html)
-            .unwrap()
-            .build()
-            .unwrap();
-        (window_id, webview)
+    if to_show.height.is_some() && to_show.width.is_some() {
+        pre_window = pre_window.with_inner_size(LogicalSize::new(
+            to_show.width.unwrap_or(800) + 80,
+            to_show.height.unwrap_or(600) + 80,
+        ));
     }
+
+    let window = pre_window.build(event_loop).unwrap();
+    let window_id = window.id();
+    let webview = WebViewBuilder::new(window)
+        .unwrap()
+        .with_html(to_show.html)
+        .unwrap()
+        .build()
+        .unwrap();
+    (window_id, webview)
 }
 
 pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
@@ -93,14 +54,8 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
 
         if !response.is_empty() {
             println!("Received response");
-            let json: serde_json::Value = serde_json::from_str(&response).unwrap_or_default();
-
-            let html: String = json["html"].as_str().unwrap_or("").to_string();
-            let title: String = json["title"].as_str().unwrap_or("").to_string();
-            let figure: serde_json::Value = json["plotly"].clone();
-            let icon = json["icon"].as_str().unwrap_or("");
-
-            let new_window = create_new_window(html, title, icon, figure, &event_loop);
+            let chart = Showable::new(&response).unwrap_or_default();
+            let new_window = create_new_window(chart, &event_loop);
             webviews.insert(new_window.0, new_window.1);
         }
 
