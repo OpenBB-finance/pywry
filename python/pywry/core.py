@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 import threading
 from multiprocessing import Process
 from typing import List, Optional
@@ -24,8 +23,9 @@ class PyWry:
 
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
-
         self.started = False
+        self.daemon = False
+
         self.runner: Optional[Process] = None
         self.thread: Optional[threading.Thread] = None
 
@@ -47,17 +47,28 @@ class PyWry:
 
     def check_backend(self):
         """Check if the backend is running."""
+
         if self.max_retries == 0:
             # If the backend is not running and we have tried to connect
             # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
+        try:
+            if not self.started:
+                self.handle_start()
+                self.started = True
 
-        if not self.started:
-            print("Starting backend")
-            self.handle_start()
+            if self.thread and not self.thread.is_alive():
+                self.start()
 
-        if self.thread and not self.thread.is_alive():
-            self.start()
+        except ConnectionRefusedError:
+            self.started = False
+            self.max_retries -= 1
+            self.check_backend()
+
+    async def send_test(self):
+        """Send data to the backend."""
+        async with connect(self.url) as websocket:
+            await websocket.send("<test>")
 
     def get_clean_port(self) -> str:
         port = self.base.get_port()
@@ -67,7 +78,7 @@ class PyWry:
 
     def handle_start(self):
         try:
-            self.runner = Process(target=start_backend, daemon=True)
+            self.runner = Process(target=start_backend, daemon=self.daemon)
             self.runner.start()
             self.started = True
         except Exception as e:
@@ -84,8 +95,8 @@ class PyWry:
                 ssl=None,
             ) as websocket:
                 if self.init_engine:
-                    # if there is data in the init_engine list, we send it to the backend
-                    # and clear the list
+                    # if there is data in the init_engine list,
+                    # we send it to the backend and clear the list
                     for msg in self.init_engine:
                         await websocket.send(msg)
                     self.init_engine = []
@@ -100,18 +111,18 @@ class PyWry:
 
                     await asyncio.sleep(0.1)
 
-        except Exception as exc:
-            if self.max_retries == 0:
-                raise ConnectionError("Exceeded max retries") from exc
-
-            self.max_retries -= 1
+        except ConnectionRefusedError:
+            await self.connect()
+        except Exception:
             await self.connect()
 
-    def start(self):
+    def start(self, daemon: bool = False):
         """Connect to backend in a separate thread."""
         self.check_backend()
+        self.daemon = daemon
+
         self.thread = threading.Thread(
-            target=asyncio.run, args=(self.connect(),), daemon=True
+            target=asyncio.run, args=(self.connect(),), daemon=daemon
         )
         self.thread.start()
 
