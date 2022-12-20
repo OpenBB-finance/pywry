@@ -4,13 +4,15 @@ use std::{
     fs,
     sync::mpsc::{Receiver, Sender},
 };
+use image::ImageFormat;
 use tokio::{runtime::Runtime, task};
+use std::fs::read;
 use wry::{
     application::{
         dpi::LogicalSize,
         event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-        window::{WindowBuilder, WindowId},
+        window::{WindowBuilder, WindowId, Icon},
     },
     webview::{WebView, WebViewBuilder},
 };
@@ -18,6 +20,7 @@ use wry::{
 fn create_new_window(
     html: String,
     title: String,
+    icon: &str,
     figure: serde_json::Value,
     event_loop: &EventLoopWindowTarget<()>,
 ) -> (WindowId, WebView) {
@@ -31,6 +34,12 @@ fn create_new_window(
         let raw_height = figure["layout"]["height"].as_u64().unwrap_or(600);
         let width = u32::try_from(raw_width).unwrap_or(800);
         let height = u32::try_from(raw_height).unwrap_or(600);
+        let bytes: Vec<u8> = read(icon).unwrap();
+        let imagebuffer = image::load_from_memory_with_format(&bytes, ImageFormat::Png)
+            .unwrap()
+            .into_rgba8();
+        let (icon_width, icon_height) = imagebuffer.dimensions();
+        let icon_rgba = imagebuffer.into_raw();
 
         let html = fs::read_to_string(html)
             .unwrap_or_default()
@@ -39,6 +48,9 @@ fn create_new_window(
         let window = WindowBuilder::new()
             .with_inner_size(LogicalSize::new(width + 80, height + 80))
             .with_title(title)
+            .with_window_icon(Some(
+                Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap(),
+            ))
             .build(event_loop)
             .unwrap();
 
@@ -86,9 +98,9 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
             let html: String = json["html"].as_str().unwrap_or("").to_string();
             let title: String = json["title"].as_str().unwrap_or("").to_string();
             let figure: serde_json::Value = json["plotly"].clone();
+            let icon = json["icon"].as_str().unwrap_or("");
 
-            let new_window = create_new_window(html, title, figure, &event_loop);
-            println!("Created new window");
+            let new_window = create_new_window(html, title, icon, figure, &event_loop);
             webviews.insert(new_window.0, new_window.1);
         }
 
@@ -98,9 +110,6 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
         {
             if event == WindowEvent::CloseRequested {
                 webviews.remove(&window_id);
-                //if webviews.is_empty() {
-                //    *control_flow = ControlFlow::Exit;
-                //}
             }
         }
     });
