@@ -1,8 +1,9 @@
 import asyncio
 import json
+import sys
 import threading
 from multiprocessing import Process
-from typing import List
+from typing import List, Optional
 
 from pywry import pywry
 from websockets.client import connect
@@ -25,8 +26,8 @@ class PyWry:
         self.init_engine: List[str] = []
 
         self.started = False
-        self.runner: Process = None
-        self.thread: threading.Thread = None
+        self.runner: Optional[Process] = None
+        self.thread: Optional[threading.Thread] = None
 
         self.port = self.get_clean_port()
         self.url = f"ws://127.0.0.1:{self.port}"
@@ -62,8 +63,7 @@ class PyWry:
         port = self.base.get_port()
         if port == 0:
             raise ConnectionError("Could not connect to a port")
-        else:
-            return str(port)
+        return str(port)
 
     def handle_start(self):
         try:
