@@ -15,6 +15,7 @@ Basic Usage:
 >>> import pywry
 >>> handler = pywry.PyWry()
 >>> handler.send_html("<h1>Welcome to plotting in PyWry</h1>")
+>>> handler.start()
 ```
 Note: There is currently an issue if you try to run this inside an X86_64 conda
 environment on an M1 machine.
