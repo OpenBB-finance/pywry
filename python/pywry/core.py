@@ -7,8 +7,6 @@ from typing import List, Optional
 from pywry import pywry
 from websockets.client import connect
 
-BACKEND_RUNNING = False
-
 
 class PyWry:
     base = pywry.WindowManager()
