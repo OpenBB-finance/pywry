@@ -18,12 +18,12 @@ impl Showable {
             Ok(item) => item,
         };
 
-        let html = json["html"].as_str().unwrap_or_default().to_string();
+        let mut html = json["html"].as_str().unwrap_or_default().to_string();
         let figure: Value = json["plotly"].clone();
         let icon = json["icon"].as_str().unwrap_or_default();
-        let title = String::new();
-        let height: Option<u32> = None;
-        let width: Option<u32> = None;
+        let title;
+        let mut height: Option<u32> = None;
+        let mut width: Option<u32> = None;
 
         if !figure.is_null() {
             title = "OpenBB - ".to_string()
