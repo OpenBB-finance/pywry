@@ -3,7 +3,7 @@ use std::{io::Error as IoError, net::SocketAddr, sync::mpsc::Sender};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
     accept_async,
-    tungstenite::{Error, Result},
+    tungstenite::{Error, Message, Result},
 };
 
 async fn accept_connection(peer: SocketAddr, stream: TcpStream, sender: Sender<String>) {
@@ -20,7 +20,7 @@ async fn handle_connection(
     stream: TcpStream,
     sender: Sender<String>,
 ) -> Result<()> {
-    let mut ws_stream = accept_async(stream).await.expect("Failed to accept");
+    let mut ws_stream = accept_async(stream).await?;
 
     println!("New WebSocket connection: {}", peer);
 
@@ -28,10 +28,14 @@ async fn handle_connection(
         let msg = msg?;
         if msg.is_text() || msg.is_binary() {
             println!("Message received");
-            let msg_str = msg.to_text().unwrap();
+            let msg_str = msg.to_text().unwrap_or("<test>");
             if !&msg_str.eq("<test>") {
-                sender.send(msg_str.to_string()).unwrap();
-                ws_stream.send(msg).await?;
+                let response = match sender.send(msg_str.to_string()) {
+                    Err(_) => "ERROR: Could not send the html",
+                    Ok(_) => "SUCCESS",
+                };
+                let new_message = Message::Text(response.to_string());
+                ws_stream.send(new_message).await?;
             }
         }
     }
