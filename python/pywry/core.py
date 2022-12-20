@@ -50,8 +50,7 @@ class PyWry:
 
         if self.max_retries == 0:
             # If the backend is not running and we have tried to connect
-            # max_retries times, we raise an error as a fallback to prevent
-            # the user from not seeing any plots
+            # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
         try:
             if not self.started:
