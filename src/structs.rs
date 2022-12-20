@@ -65,3 +65,15 @@ impl Showable {
         })
     }
 }
+
+impl Default for Showable {
+    fn default() -> Self {
+        Self {
+            html: "<h1 style='color:red'>There was an error displaying the HTML</h1>".to_string(),
+            title: "Error Creating Showable Object".to_string(),
+            height: None,
+            width: None,
+            icon: None,
+        }
+    }
+}

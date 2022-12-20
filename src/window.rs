@@ -21,14 +21,15 @@ fn create_new_window(
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(to_show.icon);
+
     if to_show.height.is_some() && to_show.width.is_some() {
         pre_window = pre_window.with_inner_size(LogicalSize::new(
-            to_show.width.unwrap() + 80,
-            to_show.height.unwrap() + 80,
+            to_show.width.unwrap_or(800) + 80,
+            to_show.height.unwrap_or(600) + 80,
         ));
     }
-    let window = pre_window.build(event_loop).unwrap();
 
+    let window = pre_window.build(event_loop).unwrap();
     let window_id = window.id();
     let webview = WebViewBuilder::new(window)
         .unwrap()
@@ -53,7 +54,7 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
 
         if !response.is_empty() {
             println!("Received response");
-            let chart = Showable::new(&response).unwrap();
+            let chart = Showable::new(&response).unwrap_or_default();
             let new_window = create_new_window(chart, &event_loop);
             webviews.insert(new_window.0, new_window.1);
         }
