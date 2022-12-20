@@ -5,7 +5,7 @@ Easily create HTML webviewers in python utilizing the [yrw](https://github.com/t
 To use just run the following:
 - Install rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Create a virtual environment: `python -m venv .env`
-- Acitvate the environment: `source .env/bin/acticate`
+- Acitvate the environment: `source .env/bin/activate`
 - Install dependencies: `pip install .[dev]`
 - Add the package into the environment: `maturin develop`
 
