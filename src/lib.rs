@@ -3,6 +3,7 @@
 
 use ports::get_available_port;
 use pyo3::prelude::*;
+use pyo3::exceptions::PyValueError;
 use std::sync::mpsc;
 use window::start_wry;
 
@@ -26,8 +27,13 @@ impl WindowManager {
 
     fn start(&self) -> PyResult<()> {
         let (sender, receiver) = mpsc::channel();
-        start_wry(self.port, sender, receiver).unwrap();
-        Ok(())
+        match start_wry(self.port, sender, receiver) {
+            Err(error) => {
+                let error_str = format!("Error starting wry server: {}", error);
+                Err(PyValueError::new_err(error_str))
+            },
+            Ok(_) => Ok(())
+        }
     }
 
     const fn get_port(&self) -> u16 {

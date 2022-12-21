@@ -40,10 +40,13 @@ fn create_new_window(
     (window_id, webview)
 }
 
-pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), ()> {
+pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), String> {
     let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
-    let rt = Runtime::new().unwrap();
+    let rt = match Runtime::new() {
+        Err(_) => return Err("Could not start a runtime".to_string()),
+        Ok(item) => item
+    };
 
     rt.block_on(async { task::spawn(run_server(port, sender)) });
 
