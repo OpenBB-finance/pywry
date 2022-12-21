@@ -26,7 +26,8 @@ impl Showable {
         let mut width: Option<u32> = None;
 
         if !figure.is_null() {
-            title = title + figure["layout"]["title"]["text"]
+            title = title
+                + figure["layout"]["title"]["text"]
                     .as_str()
                     .unwrap_or("Plots");
             let raw_width = figure["layout"]["width"].as_u64().unwrap_or(800);

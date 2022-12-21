@@ -17,7 +17,7 @@ use wry::{
 fn create_new_window(
     to_show: Showable,
     event_loop: &EventLoopWindowTarget<()>,
-) -> (WindowId, WebView) {
+) -> Result<(WindowId, WebView), String> {
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(to_show.icon);
@@ -29,23 +29,34 @@ fn create_new_window(
         ));
     }
 
-    let window = pre_window.build(event_loop).unwrap();
+    let window = match pre_window.build(event_loop) {
+        Err(error) => return Err(error.to_string()),
+        Ok(item) => item,
+    };
     let window_id = window.id();
-    let webview = WebViewBuilder::new(window)
-        .unwrap()
-        .with_html(to_show.html)
-        .unwrap()
-        .build()
-        .unwrap();
-    (window_id, webview)
+    let webview = match WebViewBuilder::new(window) {
+        Err(error2) => return Err(error2.to_string()),
+        Ok(item) => match item.with_html(to_show.html) {
+            Err(error3) => return Err(error3.to_string()),
+            Ok(subitem) => match subitem.build() {
+                Err(error4) => return Err(error4.to_string()),
+                Ok(sub2item) => sub2item,
+            },
+        },
+    };
+    Ok((window_id, webview))
 }
 
-pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) -> Result<(), String> {
+pub fn start_wry(
+    port: u16,
+    sender: Sender<String>,
+    receiver: Receiver<String>,
+) -> Result<(), String> {
     let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
     let rt = match Runtime::new() {
         Err(_) => return Err("Could not start a runtime".to_string()),
-        Ok(item) => item
+        Ok(item) => item,
     };
 
     rt.block_on(async { task::spawn(run_server(port, sender)) });
@@ -58,8 +69,12 @@ pub fn start_wry(port: u16, sender: Sender<String>, receiver: Receiver<String>) 
         if !response.is_empty() {
             println!("Received response");
             let chart = Showable::new(&response).unwrap_or_default();
-            let new_window = create_new_window(chart, &event_loop);
-            webviews.insert(new_window.0, new_window.1);
+            match create_new_window(chart, &event_loop) {
+                Err(error) => println!("Window Creation Error: {}", error),
+                Ok(new_window) => {
+                    webviews.insert(new_window.0, new_window.1);
+                }
+            };
         }
 
         if let Event::WindowEvent {
