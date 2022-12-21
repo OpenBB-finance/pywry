@@ -7,7 +7,9 @@ To use just run the following:
 - Create a virtual environment: `python -m venv .env`
 - Acitvate the environment: `source .env/bin/activate`
 - Install dependencies: `pip install .[dev]`
-- Add the package into the environment: `maturin develop`
+- Build the pip package: `maturin build`
+- Install the package: `pip install [file path from above] --force-reinstall`
+
 
 
 Basic Usage:
