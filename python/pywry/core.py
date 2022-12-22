@@ -19,13 +19,13 @@ class PyWry:
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, max_retries: int = 30):
+    def __init__(self, daemon: bool = False, max_retries: int = 30):
         self.max_retries = max_retries
 
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
         self.started = False
-        self.daemon = False
+        self.daemon = daemon
         self.base = pywry.WindowManager()
 
         self.runner: Optional[Process] = Process(
@@ -116,18 +116,19 @@ class PyWry:
 
                     await asyncio.sleep(0.1)
 
-        except ConnectionRefusedError:
-            await self.connect()
-        except Exception:
+        except ConnectionRefusedError as exc:
+            if self.max_retries == 0:
+                raise exc
+
+            self.max_retries -= 1
             await self.connect()
 
-    def start(self, daemon: bool = False):
+    def start(self):
         """Connect to backend in a separate thread."""
         self.check_backend()
-        self.daemon = daemon
 
         self.thread = threading.Thread(
-            target=asyncio.run, args=(self.connect(),), daemon=daemon
+            target=asyncio.run, args=(self.connect(),), daemon=self.daemon
         )
         self.thread.start()
 
