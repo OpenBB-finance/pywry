@@ -21,12 +21,6 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Cache python dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.pip-cache.outputs.dir || steps.pip-cache-win.outputs.dir }}
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}
-
     - name: install python dependencies
       run: pip install -U setuptools wheel twine cibuildwheel platformdirs
 
