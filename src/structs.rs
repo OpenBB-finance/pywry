@@ -20,7 +20,7 @@ impl Showable {
 
         let mut html = json["html"].as_str().unwrap_or_default().to_string();
         let figure: Value = json["plotly"].clone();
-        let icon = json["icon"].as_str().unwrap_or_default();
+        let icon = json["icon"].as_str().unwrap_or_default().to_string();
         let mut title = json["title"].as_str().unwrap_or_default().to_string();
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
@@ -38,20 +38,24 @@ impl Showable {
                 .unwrap_or_default()
                 .replace("\"{{figure_json}}\"", &figure.to_string());
         }
-        let icon_object: Option<Icon> = match read(icon) {
+
+        let icon_object = match read(icon) {
             Err(_) => None,
-            Ok(bytes) => match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
-                Err(_) => None,
-                Ok(loaded) => {
-                    let imagebuffer = loaded.into_rgb8();
-                    let (icon_width, icon_height) = imagebuffer.dimensions();
-                    let icon_rgba = imagebuffer.into_raw();
-                    match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
-                        Err(_) => None,
-                        Ok(icon) => Some(icon),
+            Ok(bytes) => {
+                let imagebuffer = match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
+                    Err(_) => None,
+                    Ok(loaded) => {
+                        let imagebuffer = loaded.to_rgba8();
+                        let (icon_width, icon_height) = imagebuffer.dimensions();
+                        let icon_rgba = imagebuffer.into_raw();
+                        match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
+                            Err(_) => None,
+                            Ok(icon) => Some(icon),
+                        }
                     }
-                }
-            },
+                };
+                imagebuffer
+            }
         };
 
         Some(Self {
