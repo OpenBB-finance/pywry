@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Dependencies
         run: |
-          dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel libgda-ui-devel gobject-introspection-devel
+          dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
           dnf install -y make automake gcc gcc-c++ kernel-devel
           python3.10 -m pip install maturin
           python3.10 -m pip install maturin[patchelf]
