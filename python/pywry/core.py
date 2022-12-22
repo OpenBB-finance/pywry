@@ -9,11 +9,12 @@ from websockets.client import connect
 
 
 class PyWry:
-    base = pywry.WindowManager()
+    """This class handles the wry functionality, by spinning up a rust program that
+    listens to websockets and shows windows with provided HTML.
+    """
 
     def __new__(cls):
-        # We only want to create one instance of the class
-        # so we use the __new__ method to check if the instance already exists
+        "Makes the class a 'singleton' by only allowing one instance at a time"
         if not hasattr(cls, "instance"):
             cls.instance = super().__new__(cls)
         return cls.instance
@@ -25,12 +26,15 @@ class PyWry:
         self.init_engine: List[str] = []
         self.started = False
         self.daemon = False
+        self.base = pywry.WindowManager()
 
-        self.runner: Optional[Process] = None
+        self.runner: Optional[Process] = Process(
+            target=start_backend, daemon=self.daemon
+        )
         self.thread: Optional[threading.Thread] = None
 
-        self.port = self.get_clean_port()
-        self.url = f"ws://127.0.0.1:{self.port}"
+        port = self.get_clean_port()
+        self.url = f"ws://127.0.0.1:{port}"
 
     def send_html(self, html: str, title: str = ""):
         """Send html to backend.
@@ -43,12 +47,14 @@ class PyWry:
             Title to display in the window, by default ""
         """
         self.check_backend()
-        self.outgoing.append(json.dumps({"html": html, "title": title}))
+        message = json.dumps({"html": html, "title": title})
+        self.outgoing.append(message)
 
     def check_backend(self):
         """Check if the backend is running."""
 
-        if self.max_retries == 0:
+        retries = 0
+        if retries == self.max_retries:
             # If the backend is not running and we have tried to connect
             # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
@@ -62,7 +68,7 @@ class PyWry:
 
         except ConnectionRefusedError:
             self.started = False
-            self.max_retries -= 1
+            retries += 1
             self.check_backend()
 
     async def send_test(self):
@@ -78,7 +84,6 @@ class PyWry:
 
     def handle_start(self):
         try:
-            self.runner = Process(target=start_backend, daemon=self.daemon)
             self.runner.start()
             self.started = True
         except Exception as e:
@@ -134,9 +139,7 @@ def start_backend():
 
         # We need to set an app id so that the taskbar icon is correct on Windows
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("openbb")
-    except (AttributeError, ImportError):
-        pass
-    except OSError:
+    except (AttributeError, ImportError, OSError):
         pass
     backend = PyWry()
     backend.base.start()
