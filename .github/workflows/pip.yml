@@ -55,13 +55,17 @@ jobs:
           python-version: "3.10"
           architecture: x64
 
+      - run: |
+            python3.10 -m pip install maturin
+            python3.10 -m pip install maturin[patchelf]
+            python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
+            which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            export PATH="$HOME/.cargo/bin:$PATH"
+            python3.10 -m maturin build --release --sdist -o dist --find-interpreter
+
       - run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist
+
 
 
 
