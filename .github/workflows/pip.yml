@@ -16,12 +16,13 @@ jobs:
       - uses: actions/checkout@v2
       #if using manylinux 228
       - run: dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-11-20 --profile minimal -y
+      - run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+      - run: export PATH="$HOME/.cargo/bin:$PATH"
       #if using manylinux 228
       - run: dnf install -y make automake gcc gcc-c++ kernel-devel
       - run: python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
       - run: python3.10 -m pip install maturin[patchelf]
-      - run: export PATH="$HOME/.cargo/bin:$PATH"
+      - run: python3.10 -m pip install .[dev]
       - run: python3.10 -m maturin build --release --sdist -o dist --find-interpreter
 
       - name: Upload wheels
