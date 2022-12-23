@@ -61,6 +61,7 @@ jobs:
                     libmanette-0.2-0 \
                     libmd-dev \
                     libzstd-dev
+            gcc --version
 
 
       # - name: Set up Python
@@ -81,17 +82,17 @@ jobs:
             export PATH="$HOME/.cargo/bin:$PATH"
             pip install --upgrade pip
             python3 -m venv env
+            python -v
             source env/bin/activate
+            pip list
             python -m pip install maturin
             python -m pip install maturin[patchelf]
             python -m pip install .[dev]
             python -m maturin build --release --sdist -o dist --find-interpreter
+            pip list
 
       - name : list the env vars
         run: env
-
-      - name : list the pip
-        run: pip list
 
       - name: Upload wheels
         uses: actions/upload-artifact@v2
