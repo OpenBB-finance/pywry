@@ -54,6 +54,8 @@ jobs:
           python-version: "3.9"
           architecture: x64
 
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -y | sh
+
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
@@ -62,8 +64,8 @@ jobs:
           args: --release --out dist
 
 
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-      - run: python3 -m maturin build
+
+      #- run: python3 -m maturin build
 
 
 
