@@ -63,7 +63,7 @@ jobs:
             export PATH="$HOME/.cargo/bin:$PATH"
             python3.10 -m maturin build --release --sdist -o dist --find-interpreter
 
-      - run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+      # - run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 
 
 
