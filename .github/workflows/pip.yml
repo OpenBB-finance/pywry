@@ -32,7 +32,7 @@ jobs:
 
 
   linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         target: [x86_64]
@@ -63,18 +63,24 @@ jobs:
                     libzstd-dev
 
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          architecture: x64
+      # - name: Set up Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: "3.10"
+      #     architecture: x64
+      - name: Setup Python
+        run: |
+            sudo apt install -y python3-pip
+            sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
+            sudo apt install -y python3-venv
+            python3 -V
 
       - name: Install rust and python env
         run: |
             which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
             export PATH="$HOME/.cargo/bin:$PATH"
             pip install --upgrade pip
-            python3.10 -m venv env
+            python3 -m venv env
             source env/bin/activate
             python -m pip install maturin
             python -m pip install maturin[patchelf]
@@ -83,6 +89,9 @@ jobs:
 
       - name : list the env vars
         run: env
+
+      - name : list the pip
+        run: pip list
 
       - name: Upload wheels
         uses: actions/upload-artifact@v2
