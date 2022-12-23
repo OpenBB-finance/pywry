@@ -30,6 +30,35 @@ jobs:
           name: wheels
           path: dist
 
+
+  linux:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        target: [x86_64]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          architecture: x64
+
+      - run: sudo apt install libwebkit2gtk-4.0-dev
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
+      - run: python3 -m maturin build
+
+      - name: Build wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: auto
+          args: --release --out dist
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
   # windows:
   #   runs-on: windows-latest
   #   steps:
