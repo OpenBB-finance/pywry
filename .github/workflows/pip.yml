@@ -52,7 +52,16 @@ jobs:
                     libssl-dev \
                     libgtk-3-dev \
                     libayatana-appindicator3-dev \
-                    librsvg2-dev
+                    librsvg2-dev \
+                    libbz2-dev \
+                    libcap-dev \
+                    libdw-dev \
+                    libelf-dev \
+                    libevdev-dev \
+                    libmanette-0.2-0 \
+                    libmd-dev \
+                    libzstd-dev
+
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -70,7 +79,6 @@ jobs:
             python -m pip install maturin
             python -m pip install maturin[patchelf]
             python -m pip install .[dev]
-            python -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
             python -m maturin build --release --sdist -o dist --find-interpreter
 
       - name : list the env vars
