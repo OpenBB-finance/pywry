@@ -3,32 +3,32 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  # manylinux:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       processor: [ x86_64 ] # , aarch64, ppc64le, s390x
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
-  #     options: --user root
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     #if using manylinux 228
-  #     - run: dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
-  #     - run: which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-  #     - run: export PATH="$HOME/.cargo/bin:$PATH"
-  #     #if using manylinux 228
-  #     - run: dnf install -y make automake gcc gcc-c++ kernel-devel
-  #     - run: python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
-  #     - run: python3.10 -m pip install maturin[patchelf]
-  #     - run: python3.10 -m maturin build --release --sdist -o dist --find-interpreter
-
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: dist
+  manylinux:
+    strategy:
+      fail-fast: false
+      matrix:
+        processor: [ x86_64 ] # , aarch64, ppc64le, s390x
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+      options: --user root
+    steps:
+      - uses: actions/checkout@v2
+      #if using manylinux 228
+      - run: dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
+      - run: dnf install -y make automake gcc gcc-c++ kernel-devel
+      - run: |
+            python3.10 -m pip install maturin
+            python3.10 -m pip install maturin[patchelf]
+            python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
+            which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            export PATH="$HOME/.cargo/bin:$PATH"
+            python3.10 -m maturin build --release --sdist -o dist --find-interpreter
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
 
 
   linux:
@@ -47,10 +47,19 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          manylinux: auto
+          distro: ubuntu20.04
           args: --release --out dist
 
-      - run: sudo apt install libwebkit2gtk-4.0-dev
+      - run: |
+          sudo apt update
+          sudo apt install libwebkit2gtk-4.0-dev \
+                  build-essential \
+                  curl \
+                  wget \
+                  libssl-dev \
+                  libgtk-3-dev \
+                  libayatana-appindicator3-dev \
+                  librsvg2-dev
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
       - run: python3 -m maturin build
 
