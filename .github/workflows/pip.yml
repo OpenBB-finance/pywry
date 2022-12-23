@@ -10,12 +10,14 @@ jobs:
         processor: [ x86_64 ] # , aarch64, ppc64le, s390x
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux2014_${{ matrix.processor }}
+      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
       options: --user root
     steps:
       - uses: actions/checkout@v2
+      #if using manylinux 228
       - run: dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-11-20 --profile minimal -y
+      #if using manylinux 228
       - run: dnf install -y make automake gcc gcc-c++ kernel-devel
       - run: python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
       - run: python3.10 -m pip install maturin[patchelf]
@@ -29,26 +31,26 @@ jobs:
           name: wheels
           path: dist
 
-  windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
+  # windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
 
-    - name: install webview2 (windows only)
-      shell: pwsh
-      run: |
-          Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile installwebview.exe -UseBasicParsing
-          cmd /C start /wait installwebview.exe /silent /install
+  #   - name: install webview2 (windows only)
+  #     shell: pwsh
+  #     run: |
+  #         Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile installwebview.exe -UseBasicParsing
+  #         cmd /C start /wait installwebview.exe /silent /install
 
-    - uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v3
-      with:
-        name: wheels
-        path: dist
+  #   - uses: PyO3/maturin-action@v1
+  #     with:
+  #       command: build
+  #       args: --release -o dist --find-interpreter
+  #   - name: Upload wheels
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: wheels
+  #       path: dist
 
   # macos:
   #   runs-on: macos-latest
