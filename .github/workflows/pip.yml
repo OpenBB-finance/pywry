@@ -22,7 +22,6 @@ jobs:
       - run: dnf install -y make automake gcc gcc-c++ kernel-devel
       - run: python3.10 -m pip install --user --upgrade pip "maturin>=0.14,<0.15" wheel
       - run: python3.10 -m pip install maturin[patchelf]
-      - run: python3.10 -m pip install .[dev]
       - run: python3.10 -m maturin build --release --sdist -o dist --find-interpreter
 
       - name: Upload wheels
