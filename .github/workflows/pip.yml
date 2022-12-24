@@ -88,7 +88,7 @@ jobs:
             python -m pip install maturin
             python -m pip install maturin[patchelf]
             python -m pip install .[dev]
-            python -m maturin build
+            python -m maturin build --compatibility linux -o dist
             pip list
 
       - name : list the env vars
