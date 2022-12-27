@@ -55,77 +55,81 @@ jobs:
           name: wheels
           path: dist
 
+  # linux build that worked
+  # linux:
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       target: [x86_64]
+  #   steps:
 
-  linux:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        target: [x86_64]
-    steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v3
 
-      - name: checkout
-        uses: actions/checkout@v3
-
-      - name : Setup sudo apt installs for ubuntu-latest
-        run: |
-            sudo apt update
-            sudo apt upgrade -y
-            sudo apt install libwebkit2gtk-4.0-dev \
-                    libgtksourceview-3.0-dev \
-                    build-essential \
-                    cmake \
-                    curl \
-                    wget \
-                    libssl-dev \
-                    libgtk-4-dev \
-                    libayatana-appindicator3-dev \
-                    librsvg2-dev \
-                    libbz2-dev \
-                    libcap-dev \
-                    libdw-dev \
-                    libelf-dev \
-                    libevdev-dev \
-                    libmanette-0.2-0 \
-                    libmd-dev \
-                    libzstd-dev
-            gcc --version
+  #     - name : Setup sudo apt installs for ubuntu-latest
+  #       run: |
+  #           sudo apt update
+  #           sudo apt upgrade -y
+  #           sudo apt install libwebkit2gtk-4.0-dev \
+  #                   libgtksourceview-3.0-dev \
+  #                   build-essential \
+  #                   cmake \
+  #                   curl \
+  #                   wget \
+  #                   libssl-dev \
+  #                   libgtk-4-dev \
+  #                   libayatana-appindicator3-dev \
+  #                   librsvg2-dev \
+  #                   libbz2-dev \
+  #                   libcap-dev \
+  #                   libdw-dev \
+  #                   libelf-dev \
+  #                   libevdev-dev \
+  #                   libmanette-0.2-0 \
+  #                   libmd-dev \
+  #                   libzstd-dev
+  #           gcc --version
 
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: "3.10"
-      #     architecture: x64
-      - name: Setup Python
-        run: |
-            sudo apt install -y python3-pip
-            sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
-            sudo apt install -y python3-venv
-            python3 -V
+  #     # - name: Set up Python
+  #     #   uses: actions/setup-python@v4
+  #     #   with:
+  #     #     python-version: "3.10"
+  #     #     architecture: x64
+  #     - name: Setup Python
+  #       run: |
+  #           sudo apt install -y python3-pip
+  #           sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
+  #           sudo apt install -y python3-venv
+  #           python3 -V
 
-      - name: Install rust and python env
-        run: |
-            which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-            export PATH="$HOME/.cargo/bin:$PATH"
-            pip install --upgrade pip
-            python3 -m venv env
-            python -v
-            source env/bin/activate
-            pip list
-            python -m pip install maturin
-            python -m pip install maturin[patchelf]
-            python -m pip install .[dev]
-            python -m maturin build -o dist
-            pip list
+  #     - name: Install rust and python env
+  #       run: |
+  #           which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+  #           export PATH="$HOME/.cargo/bin:$PATH"
+  #           pip install --upgrade pip
+  #           python3 -m venv env
+  #           python -v
+  #           source env/bin/activate
+  #           pip list
+  #           python -m pip install maturin
+  #           python -m pip install maturin[patchelf]
+  #           python -m pip install .[dev]
+  #           python -m maturin build -o dist
+  #           pip list
 
-      - name : list the env vars
-        run: env
+  #     - name : list the env vars
+  #       run: env
 
-      - name: Upload wheels
-        uses: actions/upload-artifact@v2
-        with:
-          name: wheels
-          path: dist
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+
+
+
   # windows:
   #   runs-on: windows-latest
   #   steps:
