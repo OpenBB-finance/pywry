@@ -22,7 +22,7 @@ jobs:
                             wget \
                             libglib2.0-dev \
                             libssl-dev \
-                            webkitgtk3-devel \
+                            gtk3-devel \
                             libgtk-3-dev \
                             libappindicator3-dev \
                             librsvg2-dev \
