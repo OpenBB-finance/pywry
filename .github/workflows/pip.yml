@@ -12,6 +12,22 @@ jobs:
         target: [x86_64]
         #target: [x86_64, i686]
     steps:
+      - name : Setup sudo apt installs for ubuntu-latest
+        run: |
+            sudo apt update
+            sudo apt upgrade -y
+            sudo apt install libwebkit2gtk-4.0-dev \
+                            build-essential \
+                            curl \
+                            wget \
+                            libglib2.0-dev \
+                            libssl-dev \
+                            libgtk-3-dev \
+                            libappindicator3-dev \
+                            librsvg2-dev \
+                            libappindicator-dev \
+                            libgdk3.0-cil \
+                            libatk1.0-dev
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -72,7 +88,6 @@ jobs:
                     libmanette-0.2-0 \
                     libmd-dev \
                     libzstd-dev
-            sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
             gcc --version
 
 
