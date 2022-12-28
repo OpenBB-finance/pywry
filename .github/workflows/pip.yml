@@ -17,20 +17,8 @@ jobs:
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
-            sudo apt update
-            sudo apt upgrade -y
-            sudo apt install libwebkit2gtk-4.0-dev \
-                            build-essential \
-                            curl \
-                            wget \
-                            libglib2.0-dev \
-                            libssl-dev \
-                            libgtk-3-dev \
-                            libappindicator3-dev \
-                            librsvg2-dev \
-                            libappindicator-dev \
-                            libgdk3.0-cil \
-                            libatk1.0-dev
+            dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
+            dnf install -y make automake gcc gcc-c++ kernel-devel
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
