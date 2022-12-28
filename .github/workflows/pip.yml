@@ -44,7 +44,7 @@ jobs:
         if: matrix.target == 'x86_64'
         run: |
           pip install --force-reinstall dist/pywry*.whl
-          cd ~ && PYTHONMALLOC=debug python -c 'import pywry'
+          cd ~ && python -X faulthandler -c 'import pywry'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
