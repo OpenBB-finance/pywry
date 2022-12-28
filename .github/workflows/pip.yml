@@ -11,13 +11,20 @@ jobs:
         #python-version: ["3.7", "3.8", "3.9", "3.10"]
         target: [x86_64]
         processor: [ x86_64 ]
-        #target: [x86_64, i686]
-    #container:
-    #  image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}    
+        #target: [x86_64, i686]    
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
-            dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel
+          sudo apt update
+          sudo apt install libwebkit2gtk-4.0-dev \
+          build-essential \
+          cmake \
+          curl \
+          wget \
+          libssl-dev \
+          libgtk-3-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
