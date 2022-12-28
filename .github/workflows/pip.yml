@@ -12,8 +12,8 @@ jobs:
         target: [x86_64]
         processor: [ x86_64 ]
         #target: [x86_64, i686]
-    container:
-      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}    
+    #container:
+    #  image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}    
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
