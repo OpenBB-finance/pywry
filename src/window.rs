@@ -1,6 +1,8 @@
 use crate::{structs::Showable, websocket::run_server};
+use mime_guess;
 use std::{
     collections::HashMap,
+    fs::{canonicalize, read},
     sync::mpsc::{Receiver, Sender},
 };
 use tokio::{runtime::Runtime, task};
@@ -11,6 +13,7 @@ use wry::{
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
         window::{WindowBuilder, WindowId},
     },
+    http::{header::CONTENT_TYPE, Response},
     webview::{WebView, WebViewBuilder},
 };
 
@@ -34,16 +37,46 @@ fn create_new_window(
         Ok(item) => item,
     };
     let window_id = window.id();
+
     let webview = match WebViewBuilder::new(window) {
         Err(error2) => return Err(error2.to_string()),
-        Ok(item) => match item.with_html(to_show.html) {
-            Err(error3) => return Err(error3.to_string()),
-            Ok(subitem) => match subitem.build() {
-                Err(error4) => return Err(error4.to_string()),
-                Ok(sub2item) => sub2item,
-            },
-        },
+        Ok(item) => {
+            let protocol = item.with_custom_protocol("wry".into(), move |request| {
+                let path = request.uri().path();
+                let clean_path = path.trim_start_matches('/');
+                let content = to_show.html.as_bytes().to_vec();
+                let mut mime = mime_guess::from_path("index.html");
+
+                let content = if path == "/" {
+                    content.into()
+                } else {
+                    mime = mime_guess::from_path(clean_path);
+                    match read(canonicalize(clean_path).unwrap_or_default()) {
+                        Err(_) => content,
+                        Ok(bytes) => bytes.into(),
+                    }
+                };
+
+                let mimetype = mime
+                    .first()
+                    .map(|mime| mime.to_string())
+                    .unwrap_or_else(|| "text/plain".to_string());
+
+                Response::builder()
+                    .header(CONTENT_TYPE, mimetype)
+                    .body(content)
+                    .map_err(Into::into)
+            });
+            match protocol.with_url("wry://localhost") {
+                Err(error3) => return Err(error3.to_string()),
+                Ok(subitem) => match subitem.build() {
+                    Err(error4) => return Err(error4.to_string()),
+                    Ok(sub2item) => sub2item,
+                },
+            }
+        }
     };
+
     Ok((window_id, webview))
 }
 
