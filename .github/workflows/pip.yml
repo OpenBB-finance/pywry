@@ -13,12 +13,11 @@ jobs:
         processor: [ x86_64 ]
         #target: [x86_64, i686]
     container:
-      image: quay.io/pypa/manylinux_2_34_${{ matrix.processor }}    
+      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}    
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
-            dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel gobject-introspection-devel
-            dnf install -y make automake gcc gcc-c++ kernel-devel
+            dnf install -y gtk3-devel gstreamer1-devel clutter-devel webkit2gtk3-devel
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
