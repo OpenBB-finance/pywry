@@ -48,6 +48,12 @@ fn create_new_window(
                 let mut mime = mime_guess::from_path("index.html");
 
                 let content = if path == "/" {
+                    // This is a hack to get around the fact that the webview
+                    // doesn't have a way to know when it's loaded.
+                    // When it's loaded, we refresh the page so that the JS
+                    // elements can adjust correctly. This is a hack, but it works.
+                    let mut content = to_show.html.as_bytes().to_vec();
+                    content.extend(b"window.location.reload()");
                     content.into()
                 } else {
                     mime = mime_guess::from_path(clean_path);
