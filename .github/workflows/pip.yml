@@ -11,22 +11,26 @@ jobs:
         #python-version: ["3.7", "3.8", "3.9", "3.10"]
         target: [x86_64]
         processor: [ x86_64 ]
-        #target: [x86_64, i686]    
+        #target: [x86_64, i686]  
+    container:
+      image: quay.io/pypa/manylinux2014_${{ matrix.processor }}
+      options: --user root  
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
-          sudo apt update
-          sudo apt install libwebkit2gtk-4.0-dev \
-          build-essential \
-          cmake \
-          curl \
-          wget \
-          libssl-dev \
-          libgtk-3-dev \
-          libayatana-appindicator3-dev \
-          librsvg2-dev \
-          libsoup2.4-dev \
-          libjavascriptcoregtk-4.0-dev
+          yum install -y \
+              # notice I'm using an old version of webkit. It works!
+              webkitgtk4-devel \
+              openssl-devel \
+              curl \
+              wget \
+              squashfs-tools \
+              gcc \
+              gcc-c++ \
+              make \
+              file \
+              librsvg2-devel
+
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -52,6 +56,57 @@ jobs:
         with:
           name: wheels
           path: dist
+
+# jobs:
+#   manylinux:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         python-version: ["3.10"]
+#         #python-version: ["3.7", "3.8", "3.9", "3.10"]
+#         target: [x86_64]
+#         processor: [ x86_64 ]
+#         #target: [x86_64, i686]    
+#     steps:
+#       - name : Setup sudo apt installs for ubuntu-latest
+#         run: |
+#           sudo apt update
+#           sudo apt install libwebkit2gtk-4.0-dev \
+#           build-essential \
+#           cmake \
+#           curl \
+#           wget \
+#           libssl-dev \
+#           libgtk-3-dev \
+#           libayatana-appindicator3-dev \
+#           librsvg2-dev \
+#           libsoup2.4-dev \
+#           libjavascriptcoregtk-4.0-dev
+#       - uses: actions/checkout@v3
+#       - name: Install Rust toolchain
+#         uses: actions-rs/toolchain@v1
+#         with:
+#           toolchain: stable
+#           profile: minimal
+#           default: true
+#       - uses: actions/setup-python@v4
+#         with:
+#           python-version: ${{ matrix.python-version }}
+#       - name: Build Wheels
+#         uses: PyO3/maturin-action@v1
+#         with:
+#           command: build
+#           args: --release -o dist --find-interpreter
+#       - name: Install build wheel
+#         if: matrix.target == 'x86_64'
+#         run: |
+#           pip install --force-reinstall dist/pywry*.whl
+#           cd ~ && python -X faulthandler -c 'import pywry'
+#       - name: Upload wheels
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: wheels
+#           path: dist
 
   # linux build that worked
   # linux:
