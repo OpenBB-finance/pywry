@@ -19,7 +19,6 @@ jobs:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
           yum install -y \
-              # notice I'm using an old version of webkit. It works!
               webkitgtk4-devel \
               openssl-devel \
               curl \
