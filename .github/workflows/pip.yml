@@ -11,15 +11,18 @@ jobs:
         #python-version: ["3.7", "3.8", "3.9", "3.10"]
         target: [x86_64]
         processor: [ x86_64 ]
-        #target: [x86_64, i686]  
+        #target: [x86_64, i686]
     container:
       image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
-      options: --user root  
+      options: --user root
     steps:
       - name : Setup sudo apt installs for ubuntu-latest
         run: |
           yum install -y \
+              gtk3-devel \
               webkitgtk4-devel \
+              webkit2gtk3-devel \
+              libsoup-devel \
               openssl-devel \
               curl \
               wget \
@@ -65,7 +68,7 @@ jobs:
 #         #python-version: ["3.7", "3.8", "3.9", "3.10"]
 #         target: [x86_64]
 #         processor: [ x86_64 ]
-#         #target: [x86_64, i686]    
+#         #target: [x86_64, i686]
 #     steps:
 #       - name : Setup sudo apt installs for ubuntu-latest
 #         run: |
