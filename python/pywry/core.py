@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import threading
 from multiprocessing import Process
 from typing import List, Optional
@@ -149,4 +150,4 @@ def start_backend():
     except (AttributeError, ImportError, OSError):
         pass
     backend = PyWry()
-    backend.base.start()
+    backend.base.start(bool(os.environ.get("DEBUG", False)))
