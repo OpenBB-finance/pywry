@@ -150,4 +150,4 @@ def start_backend():
     except (AttributeError, ImportError, OSError):
         pass
     backend = PyWry()
-    backend.base.start(bool(os.environ.get("DEBUG", False)))
+    backend.base.start(bool(os.environ.get("DEBUG_MODE", False)))
