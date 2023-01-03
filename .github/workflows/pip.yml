@@ -51,7 +51,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release -o dist --find-interpreter
+          args: --release -o dist
       - name: Install build wheel
         if: matrix.target == 'x86_64'
         run: |
@@ -63,6 +63,31 @@ jobs:
           name: wheels
           path: dist
 
+  build-nightly-only:
+    name: Build nightly only
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install nightly rust
+        run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+      # Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
+      - name: Installing custom dependency
+        run: echo "Installing custom dependency"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/cp3[6789]*/bin; do
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/maturin" build -m nightly-only/Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
+          done
+      # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
+      # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
+      - name: Auditwheel repair
+        run: |
+          for wheel in nightly-only/target/wheels/*.whl; do
+              auditwheel repair "${wheel}"
+          done
 # jobs:
 #   manylinux:
 #     runs-on: ubuntu-latest
