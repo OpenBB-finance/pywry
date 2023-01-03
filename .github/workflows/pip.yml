@@ -79,13 +79,13 @@ jobs:
           source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[6789]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" build -m nightly-only/Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
+            "${PYBIN}/maturin" build -i "${PYBIN}/python" --release --manylinux 2014
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
       - name: Auditwheel repair
         run: |
-          for wheel in nightly-only/target/wheels/*.whl; do
+          for wheel in target/wheels/*.whl; do
               auditwheel repair "${wheel}"
           done
 # jobs:
