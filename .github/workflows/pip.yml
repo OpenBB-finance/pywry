@@ -3,71 +3,307 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  manylinux:
-    strategy:
-      fail-fast: false
-      matrix:
-        processor: [ x86_64 ] # , aarch64, ppc64le, s390x
+  # manylinuxtest:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ["3.10"]
+  #       #python-version: ["3.7", "3.8", "3.9", "3.10"]
+  #       target: [x86_64]
+  #       processor: [ x86_64 ]
+  #       #target: [x86_64, i686]
+  #   container:
+  #     image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+  #     options: --user root
+  #   steps:
+  #     - name : Setup sudo apt installs for ubuntu-latest
+  #       run: |
+  #         yum install -y \
+  #             gtk3-devel \
+  #             webkitgtk4-devel \
+  #             webkit2gtk3-devel \
+  #             libsoup-devel \
+  #             openssl-devel \
+  #             curl \
+  #             wget \
+  #             squashfs-tools \
+  #             gcc \
+  #             gcc-c++ \
+  #             make \
+  #             file \
+  #             librsvg2-devel
+
+  #     - name : Setup dev tools
+  #       run: |
+  #         yum groupinstall -y "Development Tools"
+
+  #     - uses: actions/checkout@v3
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         default: true
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Build Wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         command: build
+  #         args: --release -o dist
+  #     - name: Install build wheel
+  #       if: matrix.target == 'x86_64'
+  #       run: |
+  #         pip install --force-reinstall dist/pywry*.whl
+  #         cd ~ && python -X faulthandler -c 'import pywry'
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+  build-nightly-only:
+    name: Build nightly only
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["cp39-cp39","cp310-cp310","cp311-cp311"]
+        #python-version: ["3.7", "3.8", "3.9", "3.10"]
+        target: [x86_64]
+        processor: [ x86_64 ]
+        #target: [x86_64, i686]
     container:
       image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
       options: --user root
     steps:
-      - uses: actions/checkout@v2
-      - name: Install Dependencies
+      - uses: actions/checkout@v1
+      - name: Install nightly rust
+        run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+
+      #Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
+      - name : Setup sudo apt installs for ubuntu-latest
         run: |
-          yum update -y
-          yum install gtk3-devel libsoup-devel webkit2gtk3-devel sudo -y
-          sudo python3.8 -m pip install maturin
-          which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-          export PATH="$HOME/.cargo/bin:$PATH"
-          python3.8 -m maturin build --release --sdist -o dist --find-interpreter
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
+          yum install -y \
+              gtk3-devel \
+              webkitgtk4-devel \
+              webkit2gtk3-devel \
+              libsoup-devel \
+              openssl-devel \
+              curl \
+              wget \
+              squashfs-tools \
+              gcc \
+              gcc-c++ \
+              make \
+              file \
+              librsvg2-devel
 
-  windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        args: --release -o dist --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v3
-      with:
-        name: wheels
-        path: dist
+      - name : Setup dev tools
+        run: |
+          yum groupinstall -y "Development Tools"
 
-  macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: PyO3/maturin-action@v1
-      with:
-        command: build
-        args: --release -o dist --universal2 --find-interpreter
-    - name: Upload wheels
-      uses: actions/upload-artifact@v3
-      with:
-        name: wheels
-        path: dist
 
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: [ macos, windows, manylinux ]
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheels
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --skip-existing *
+      - name: Build
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2_28
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux off
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/pip" install .[dev]
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --compatibility manylinux_2_28
+          done
+      #Try to run and import
+      - name: Test Build
+        if: matrix.target == 'x86_64'
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
+            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
+            "${PYBIN}/python" -X faulthandler -c 'import pywry'
+          done
+      # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
+      # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
+      # - name: Auditwheel repair
+      #   run: |
+      #     for wheel in target/wheels/*.whl; do
+      #         auditwheel repair "${wheel}"
+      #     done
+# jobs:
+#   manylinux:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         python-version: ["3.10"]
+#         #python-version: ["3.7", "3.8", "3.9", "3.10"]
+#         target: [x86_64]
+#         processor: [ x86_64 ]
+#         #target: [x86_64, i686]
+#     steps:
+#       - name : Setup sudo apt installs for ubuntu-latest
+#         run: |
+#           sudo apt update
+#           sudo apt install libwebkit2gtk-4.0-dev \
+#           build-essential \
+#           cmake \
+#           curl \
+#           wget \
+#           libssl-dev \
+#           libgtk-3-dev \
+#           libayatana-appindicator3-dev \
+#           librsvg2-dev \
+#           libsoup2.4-dev \
+#           libjavascriptcoregtk-4.0-dev
+#       - uses: actions/checkout@v3
+#       - name: Install Rust toolchain
+#         uses: actions-rs/toolchain@v1
+#         with:
+#           toolchain: stable
+#           profile: minimal
+#           default: true
+#       - uses: actions/setup-python@v4
+#         with:
+#           python-version: ${{ matrix.python-version }}
+#       - name: Build Wheels
+#         uses: PyO3/maturin-action@v1
+#         with:
+#           command: build
+#           args: --release -o dist --find-interpreter
+#       - name: Install build wheel
+#         if: matrix.target == 'x86_64'
+#         run: |
+#           pip install --force-reinstall dist/pywry*.whl
+#           cd ~ && python -X faulthandler -c 'import pywry'
+#       - name: Upload wheels
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: wheels
+#           path: dist
+
+  # linux build that worked
+  # linux:
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       target: [x86_64]
+  #   steps:
+
+  #     - name: checkout
+  #       uses: actions/checkout@v3
+
+  #     - name : Setup sudo apt installs for ubuntu-latest
+  #       run: |
+  #           sudo apt update
+  #           sudo apt upgrade -y
+  #           sudo apt install libwebkit2gtk-4.0-dev \
+  #                   libgtksourceview-3.0-dev \
+  #                   build-essential \
+  #                   cmake \
+  #                   curl \
+  #                   wget \
+  #                   libssl-dev \
+  #                   libgtk-4-dev \
+  #                   libayatana-appindicator3-dev \
+  #                   librsvg2-dev \
+  #                   libbz2-dev \
+  #                   libcap-dev \
+  #                   libdw-dev \
+  #                   libelf-dev \
+  #                   libevdev-dev \
+  #                   libmanette-0.2-0 \
+  #                   libmd-dev \
+  #                   libzstd-dev
+  #           gcc --version
+
+
+  #     # - name: Set up Python
+  #     #   uses: actions/setup-python@v4
+  #     #   with:
+  #     #     python-version: "3.10"
+  #     #     architecture: x64
+  #     - name: Setup Python
+  #       run: |
+  #           sudo apt install -y python3-pip
+  #           sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
+  #           sudo apt install -y python3-venv
+  #           python3 -V
+
+  #     - name: Install rust and python env
+  #       run: |
+  #           which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+  #           export PATH="$HOME/.cargo/bin:$PATH"
+  #           pip install --upgrade pip
+  #           python3 -m venv env
+  #           python -v
+  #           source env/bin/activate
+  #           pip list
+  #           python -m pip install maturin
+  #           python -m pip install maturin[patchelf]
+  #           python -m pip install .[dev]
+  #           python -m maturin build -o dist
+  #           pip list
+
+  #     - name : list the env vars
+  #       run: env
+
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+
+
+
+  # windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+
+  #   - name: install webview2 (windows only)
+  #     shell: pwsh
+  #     run: |
+  #         Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile installwebview.exe -UseBasicParsing
+  #         cmd /C start /wait installwebview.exe /silent /install
+
+  #   - uses: PyO3/maturin-action@v1
+  #     with:
+  #       command: build
+  #       args: --release -o dist --find-interpreter
+  #   - name: Upload wheels
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: wheels
+  #       path: dist
+
+  # macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - uses: PyO3/maturin-action@v1
+  #     with:
+  #       command: build
+  #       args: --release -o dist --universal2 --find-interpreter
+  #   - name: Upload wheels
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: wheels
+  #       path: dist
+
+  # release:
+  #   name: Release
+  #   runs-on: ubuntu-latest
+  #   needs: [ macos, windows, manylinux ]
+  #   steps:
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: wheels
+  #     - name: Publish to PyPI
+  #       uses: PyO3/maturin-action@v1
+  #       env:
+  #         MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+  #       with:
+  #         command: upload
+  #         args: --skip-existing *
