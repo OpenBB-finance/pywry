@@ -32,7 +32,7 @@ jobs:
               make \
               file \
               librsvg2-devel \
-          yum groupinstall "Development Tools"
+          yum install "Development Tools"
 
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
