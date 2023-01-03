@@ -120,8 +120,8 @@ jobs:
         run: |
           source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[9]*/bin; do
-            "${PYBIN}/pip" pip install --force-reinstall dist/pywry*.whl
-            "${PYBIN}/pip" cd ~ && python -X faulthandler -c 'import pywry'
+            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
+            "${PYBIN}" python -X faulthandler -c 'import pywry'
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
