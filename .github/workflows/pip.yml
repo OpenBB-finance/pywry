@@ -115,13 +115,14 @@ jobs:
             "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --manylinux 2_28
           done
       #Try to run and import
-      - name: Install build wheel
+      - name: Test Build
         if: matrix.target == 'x86_64'
         run: |
           source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[9]*/bin; do
             "${PYBIN}/pip" pip install --force-reinstall dist/pywry*.whl
             "${PYBIN}/pip" cd ~ && python -X faulthandler -c 'import pywry'
+          done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
       - name: Auditwheel repair
