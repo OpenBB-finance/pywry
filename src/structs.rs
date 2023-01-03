@@ -21,15 +21,11 @@ impl Showable {
         let mut html = json["html"].as_str().unwrap_or_default().to_string();
         let figure: Value = json["plotly"].clone();
         let icon = json["icon"].as_str().unwrap_or_default().to_string();
-        let mut title = json["title"].as_str().unwrap_or_default().to_string();
+        let title = json["title"].as_str().unwrap_or_default().to_string();
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
 
         if !figure.is_null() {
-            title = title
-                + figure["layout"]["title"]["text"]
-                    .as_str()
-                    .unwrap_or("Plots");
             let raw_width = figure["layout"]["width"].as_u64().unwrap_or(800);
             let raw_height = figure["layout"]["height"].as_u64().unwrap_or(600);
             width = Some(u32::try_from(raw_width).unwrap_or(800));
