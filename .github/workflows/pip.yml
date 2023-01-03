@@ -3,7 +3,7 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  # manylinux:
+  # manylinuxtest:
   #   runs-on: ubuntu-latest
   #   strategy:
   #     matrix:
