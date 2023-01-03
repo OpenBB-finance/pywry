@@ -84,6 +84,7 @@ pub fn start_wry(
     port: u16,
     sender: Sender<String>,
     receiver: Receiver<String>,
+    debug: bool,
 ) -> Result<(), String> {
     let event_loop = EventLoop::new();
     let mut webviews = HashMap::new();
@@ -92,7 +93,7 @@ pub fn start_wry(
         Ok(item) => item,
     };
 
-    rt.block_on(async { task::spawn(run_server(port, sender)) });
+    rt.block_on(async { task::spawn(run_server(port, sender, debug)) });
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -100,7 +101,9 @@ pub fn start_wry(
         let response = receiver.try_recv().unwrap_or_default();
 
         if !response.is_empty() {
-            println!("Received response");
+            if debug {
+                println!("Received response");
+            }
             let chart = Showable::new(&response).unwrap_or_default();
             match create_new_window(chart, &event_loop) {
                 Err(error) => println!("Window Creation Error: {}", error),
