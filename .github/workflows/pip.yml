@@ -3,65 +3,65 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  manylinux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-        #python-version: ["3.7", "3.8", "3.9", "3.10"]
-        target: [x86_64]
-        processor: [ x86_64 ]
-        #target: [x86_64, i686]
-    container:
-      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
-      options: --user root
-    steps:
-      - name : Setup sudo apt installs for ubuntu-latest
-        run: |
-          yum install -y \
-              gtk3-devel \
-              webkitgtk4-devel \
-              webkit2gtk3-devel \
-              libsoup-devel \
-              openssl-devel \
-              curl \
-              wget \
-              squashfs-tools \
-              gcc \
-              gcc-c++ \
-              make \
-              file \
-              librsvg2-devel
+  # manylinux:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ["3.10"]
+  #       #python-version: ["3.7", "3.8", "3.9", "3.10"]
+  #       target: [x86_64]
+  #       processor: [ x86_64 ]
+  #       #target: [x86_64, i686]
+  #   container:
+  #     image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+  #     options: --user root
+  #   steps:
+  #     - name : Setup sudo apt installs for ubuntu-latest
+  #       run: |
+  #         yum install -y \
+  #             gtk3-devel \
+  #             webkitgtk4-devel \
+  #             webkit2gtk3-devel \
+  #             libsoup-devel \
+  #             openssl-devel \
+  #             curl \
+  #             wget \
+  #             squashfs-tools \
+  #             gcc \
+  #             gcc-c++ \
+  #             make \
+  #             file \
+  #             librsvg2-devel
 
-      - name : Setup dev tools
-        run: |
-          yum groupinstall -y "Development Tools"
+  #     - name : Setup dev tools
+  #       run: |
+  #         yum groupinstall -y "Development Tools"
 
-      - uses: actions/checkout@v3
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          default: true
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Build Wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: --release -o dist
-      - name: Install build wheel
-        if: matrix.target == 'x86_64'
-        run: |
-          pip install --force-reinstall dist/pywry*.whl
-          cd ~ && python -X faulthandler -c 'import pywry'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
+  #     - uses: actions/checkout@v3
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         default: true
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Build Wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         command: build
+  #         args: --release -o dist
+  #     - name: Install build wheel
+  #       if: matrix.target == 'x86_64'
+  #       run: |
+  #         pip install --force-reinstall dist/pywry*.whl
+  #         cd ~ && python -X faulthandler -c 'import pywry'
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist
 
   build-nightly-only:
     name: Build nightly only
@@ -77,9 +77,9 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
-          for PYBIN in /opt/python/cp3[6789]*/bin; do
+          for PYBIN in /opt/python/cp3[9]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" build -i "${PYBIN}/python" --release --manylinux 2014
+            "${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
