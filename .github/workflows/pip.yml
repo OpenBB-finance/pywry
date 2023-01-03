@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.9","3.10","3.11"]
         #python-version: ["3.7", "3.8", "3.9", "3.10"]
         target: [x86_64]
         processor: [ x86_64 ]
@@ -110,7 +110,7 @@ jobs:
         #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux off
         run: |
           source $HOME/.cargo/env
-          for PYBIN in /opt/python/cp3[9]*/bin; do
+          for PYBIN in /opt/python/cp3[91011]*/bin; do
             "${PYBIN}/pip" install maturin
             "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --manylinux 2_28
           done
@@ -119,17 +119,17 @@ jobs:
         if: matrix.target == 'x86_64'
         run: |
           source $HOME/.cargo/env
-          for PYBIN in /opt/python/cp3[9]*/bin; do
+          for PYBIN in /opt/python/cp3[91011]*/bin; do
             "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
             "${PYBIN}/python" -X faulthandler -c 'import pywry'
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
-      - name: Auditwheel repair
-        run: |
-          for wheel in target/wheels/*.whl; do
-              auditwheel repair "${wheel}"
-          done
+      # - name: Auditwheel repair
+      #   run: |
+      #     for wheel in target/wheels/*.whl; do
+      #         auditwheel repair "${wheel}"
+      #     done
 # jobs:
 #   manylinux:
 #     runs-on: ubuntu-latest
