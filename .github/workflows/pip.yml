@@ -35,7 +35,7 @@ jobs:
 
       - name : Setup dev tools
         run: |
-          yum groupinstall "Development Tools"
+          yum groupinstall -y "Development Tools"
 
       - uses: actions/checkout@v3
       - name: Install Rust toolchain
