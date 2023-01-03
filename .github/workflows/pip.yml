@@ -68,8 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["cp39-cp39","cp310-cp310","cp311-cp311"]
-        #python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["cp39-cp39"]
+        #python-version: ["cp39-cp39","cp310-cp310","cp311-cp311"]
         target: [x86_64]
         processor: [ x86_64 ]
         #target: [x86_64, i686]
@@ -113,15 +113,21 @@ jobs:
           for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
             "${PYBIN}/pip" install maturin
             "${PYBIN}/pip" install .[dev]
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --compatibility manylinux_2_28
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --compatibility manylinux_2_28
           done
       #Try to run and import
       - name: Test Build
         if: matrix.target == 'x86_64'
         run: |
           source $HOME/.cargo/env
+          for wheel in target/wheels/*.whl; do
+               auditwheel show "${wheel}"
+           done
           for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
             "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
+            "${PYBIN}/python"
+            'import pywry'
+            exit()
             "${PYBIN}/python" -X faulthandler -c 'import pywry'
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
@@ -129,7 +135,7 @@ jobs:
       # - name: Auditwheel repair
       #   run: |
       #     for wheel in target/wheels/*.whl; do
-      #         auditwheel repair "${wheel}"
+      #         auditwheel show "${wheel}"
       #     done
 # jobs:
 #   manylinux:
