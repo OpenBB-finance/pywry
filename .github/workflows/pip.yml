@@ -112,7 +112,7 @@ jobs:
           source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[91011]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --manylinux 2_28
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --compatibility manylinux_2_28
           done
       #Try to run and import
       - name: Test Build
