@@ -1477,7 +1477,7 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.1.369"
+version = "0.1.37"
 dependencies = [
  "futures-util",
  "image",
