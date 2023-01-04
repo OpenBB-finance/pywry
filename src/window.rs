@@ -57,8 +57,8 @@ fn create_new_window(
                             &clean_path[8..]
                         } else {
                             println!("Unix path detected");
-                            println!("Path: {}", &clean_path[6..]);
-                            &clean_path[6..]
+                            println!("Path: {}", &clean_path[5..]);
+                            &clean_path[5..]
                         };
                         check_path
                     } else {
