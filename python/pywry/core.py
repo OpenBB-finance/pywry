@@ -35,7 +35,7 @@ class PyWry:
         self.thread: Optional[threading.Thread] = None
 
         port = self.get_clean_port()
-        self.url = f"ws://127.0.0.1:{port}"
+        self.url = f"ws://localhost:{port}"
 
     def __del__(self):
         if self.runner:
@@ -60,8 +60,7 @@ class PyWry:
     def check_backend(self):
         """Check if the backend is running."""
 
-        retries = 0
-        if retries == self.max_retries:
+        if self.max_retries == 0:
             # If the backend is not running and we have tried to connect
             # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
@@ -75,7 +74,7 @@ class PyWry:
 
         except ConnectionRefusedError:
             self.started = False
-            retries += 1
+            self.max_retries -= 1
             self.check_backend()
 
     async def send_test(self):
@@ -99,7 +98,6 @@ class PyWry:
 
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
-        retries = 0
         try:
             async with connect(
                 self.url,
@@ -125,9 +123,10 @@ class PyWry:
                     await asyncio.sleep(0.1)
 
         except Exception as exc:
-            if retries == self.max_retries:
+            if self.max_retries == 0:
                 raise ConnectionError("Exceed max retries") from exc
-            retries += 1
+            self.max_retries -= 1
+            await asyncio.sleep(1)
             await self.connect()
 
     def start(self):
