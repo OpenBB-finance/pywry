@@ -43,7 +43,7 @@ fn create_new_window(
         Ok(item) => {
             let protocol = item.with_custom_protocol("wry".into(), move |request| {
                 let path = request.uri().path();
-                let clean_path = path.trim_start_matches('/');
+                let clean_path = &path[1..];
                 let content = to_show.html.as_bytes().to_vec();
                 let mut mime = mime_guess::from_path("index.html");
 
