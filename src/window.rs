@@ -52,9 +52,13 @@ fn create_new_window(
                 } else {
                     let file_path = if clean_path.starts_with("file:///") {
                         let check_path = if clean_path[9..].starts_with(":") {
+                            println!("Windows path detected");
+                            println!("Path: {}", &clean_path[8..]);
                             &clean_path[8..]
                         } else {
-                            &clean_path[7..]
+                            println!("Unix path detected");
+                            println!("Path: {}", &clean_path[6..]);
+                            &clean_path[6..]
                         };
                         check_path
                     } else {
