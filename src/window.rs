@@ -50,10 +50,20 @@ fn create_new_window(
                 let content = if path == "/" {
                     content.into()
                 } else {
-                    mime = mime_guess::from_path(clean_path);
-                    match read(canonicalize(clean_path).unwrap_or_default()) {
-                        Err(_) => content,
-                        Ok(bytes) => bytes.into(),
+                    println!("path: {}", clean_path);
+                    if clean_path.starts_with("file:///") {
+                        let file_path = &clean_path[8..];
+                        mime = mime_guess::from_path(file_path);
+                        match read(canonicalize(file_path).unwrap_or_default()) {
+                            Err(_) => content.into(),
+                            Ok(bytes) => bytes.into(),
+                        }
+                    } else {
+                            mime = mime_guess::from_path(clean_path);
+                            match read(canonicalize(clean_path).unwrap_or_default()) {
+                                Err(_) => content.into(),
+                                Ok(bytes) => bytes.into(),
+                            }
                     }
                 };
 
