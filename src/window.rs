@@ -53,11 +53,16 @@ fn create_new_window(
                 } else {
                     let file_path = if clean_path.starts_with("file://") {
                         let path = PathBuf::from(&clean_path);
-                        path.strip_prefix("file://").unwrap().to_path_buf()
+                        if ":" == &clean_path[9..10] {
+                            path.strip_prefix("file://").unwrap().to_path_buf()
+                        } else {
+                            path.strip_prefix("file:/").unwrap().to_path_buf()
+                        }
                     } else {
                         PathBuf::from(clean_path)
                     };
                     let file_path = file_path.to_str().unwrap();
+
                     mime = mime_guess::from_path(file_path);
                     match read(canonicalize(file_path).unwrap_or_default()) {
                         Err(_) => content.into(),
