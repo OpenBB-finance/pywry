@@ -31,6 +31,7 @@ class PyWry:
         self.started = False
         self.daemon = daemon
         self.base = pywry.WindowManager()
+
         self.runner: Optional[psutil.Popen] = None
         self.procs: List[psutil.Process] = [psutil.Process(os.getpid())]
         self.thread: Optional[threading.Thread] = None
@@ -172,4 +173,4 @@ def start_backend():
     except (AttributeError, ImportError, OSError):
         pass
     backend = PyWry()
-    backend.base.start(bool(os.environ.get("DEBUG_MODE", False)))
+    backend.base.start(str(os.environ.get("DEBUG_MODE", "false")).lower() == "true")

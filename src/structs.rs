@@ -9,6 +9,7 @@ pub struct Showable {
     pub height: Option<u32>,
     pub width: Option<u32>,
     pub icon: Option<Icon>,
+    pub figure: Option<Value>,
 }
 
 impl Showable {
@@ -19,20 +20,20 @@ impl Showable {
         };
 
         let mut html = json["html"].as_str().unwrap_or_default().to_string();
-        let figure: Value = json["plotly"].clone();
+        let plotly: Value = json["plotly"].clone();
         let icon = json["icon"].as_str().unwrap_or_default().to_string();
         let title = json["title"].as_str().unwrap_or_default().to_string();
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
+        let mut figure: Option<Value> = None;
 
-        if !figure.is_null() {
-            let raw_width = figure["layout"]["width"].as_u64().unwrap_or(800);
-            let raw_height = figure["layout"]["height"].as_u64().unwrap_or(600);
+        if !plotly.is_null() {
+            let raw_width = plotly["layout"]["width"].as_u64().unwrap_or(800);
+            let raw_height = plotly["layout"]["height"].as_u64().unwrap_or(600);
             width = Some(u32::try_from(raw_width).unwrap_or(800));
             height = Some(u32::try_from(raw_height).unwrap_or(600));
-            html = read_to_string(html)
-                .unwrap_or_default()
-                .replace("\"{{figure_json}}\"", &figure.to_string());
+            html = read_to_string(html).unwrap_or_default();
+            figure = Some(plotly);
         }
 
         let icon_object = match read(icon) {
@@ -60,6 +61,7 @@ impl Showable {
             height,
             width,
             icon: icon_object,
+            figure,
         })
     }
 }
@@ -72,6 +74,7 @@ impl Default for Showable {
             height: None,
             width: None,
             icon: None,
+            figure: None,
         }
     }
 }
