@@ -3,6 +3,7 @@ use mime_guess;
 use std::{
     collections::HashMap,
     fs::{canonicalize, read},
+    path::PathBuf,
     sync::mpsc::{Receiver, Sender},
 };
 use tokio::{runtime::Runtime, task};
@@ -20,6 +21,7 @@ use wry::{
 fn create_new_window(
     to_show: Showable,
     event_loop: &EventLoopWindowTarget<()>,
+    debug: bool,
 ) -> Result<(WindowId, WebView), String> {
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
@@ -50,20 +52,22 @@ fn create_new_window(
                 let content = if path == "/" {
                     content.into()
                 } else {
-                    println!("path: {}", clean_path);
-                    if clean_path.starts_with("file:///") {
-                        let file_path = &clean_path[8..];
-                        mime = mime_guess::from_path(file_path);
-                        match read(canonicalize(file_path).unwrap_or_default()) {
-                            Err(_) => content.into(),
-                            Ok(bytes) => bytes.into(),
+                    let file_path = if clean_path.starts_with("file://") {
+                        let path = PathBuf::from(&clean_path);
+                        if ":" == &clean_path[9..10] {
+                            path.strip_prefix("file://").unwrap().to_path_buf()
+                        } else {
+                            path.strip_prefix("file:/").unwrap().to_path_buf()
                         }
                     } else {
-                            mime = mime_guess::from_path(clean_path);
-                            match read(canonicalize(clean_path).unwrap_or_default()) {
-                                Err(_) => content.into(),
-                                Ok(bytes) => bytes.into(),
-                            }
+                        PathBuf::from(clean_path)
+                    };
+                    let file_path = file_path.to_str().unwrap();
+
+                    mime = mime_guess::from_path(file_path);
+                    match read(canonicalize(file_path).unwrap_or_default()) {
+                        Err(_) => content.into(),
+                        Ok(bytes) => bytes.into(),
                     }
                 };
 
@@ -77,7 +81,20 @@ fn create_new_window(
                     .body(content)
                     .map_err(Into::into)
             });
-            match protocol.with_url("wry://localhost") {
+
+            let init_view = if !to_show.figure.is_none() {
+                let plotly_figure = to_show.figure.unwrap();
+                let initialization_script = format!(
+                    "window.plotly_figure = {};",
+                    serde_json::to_string(&plotly_figure).unwrap_or_default()
+                );
+                let protocol = protocol.with_initialization_script(&initialization_script);
+                protocol
+            } else {
+                protocol
+            };
+
+            match init_view.with_devtools(debug).with_url("wry://localhost") {
                 Err(error3) => return Err(error3.to_string()),
                 Ok(subitem) => match subitem.build() {
                     Err(error4) => return Err(error4.to_string()),
@@ -115,7 +132,7 @@ pub fn start_wry(
                 println!("Received response");
             }
             let chart = Showable::new(&response).unwrap_or_default();
-            match create_new_window(chart, &event_loop) {
+            match create_new_window(chart, &event_loop, debug) {
                 Err(error) => println!("Window Creation Error: {}", error),
                 Ok(new_window) => {
                     webviews.insert(new_window.0, new_window.1);
