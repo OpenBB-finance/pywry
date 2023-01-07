@@ -4,19 +4,26 @@ on: workflow_dispatch
 
 jobs:
   manylinux:
+    strategy:
+      fail-fast: false
+      matrix:
+        processor: [ x86_64 ] # , aarch64, ppc64le, s390x
     runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux2010_${{ matrix.processor }}
+      options: --user root
     steps:
       - uses: actions/checkout@v2
-      - name: Set up manylinux environment
-        uses: docker://quay.io/pypa/manylinux2010_x86_64:latest
       - name: Install Dependencies
         run: |
-          yum install -y bzip2-devel gtk3-devel webkit2gtk3-devel
-          python3 -m pip install --upgrade pip
-          python3 -m pip install maturin
+          yum update -y
+          yum install bzip2-devel gtk3-devel libsoup-devel webkit2gtk3-devel sudo -y
+          sudo python3.8 -m pip install maturin
+          which rustup > /dev/null || curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
       - name: Build wheels
         run: |
-          maturin build --find-interpreter --manylinux
+          maturin build -o dist --find-interpreter --manylinux
       - name: Test for compatibility with manylinux
         run: |
           auditwheel repair -w dist dist/*.whl
