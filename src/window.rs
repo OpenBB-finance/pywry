@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     fs::{canonicalize, read},
     sync::mpsc::{Receiver, Sender},
+    path::PathBuf,
 };
 use tokio::{runtime::Runtime, task};
 use wry::{
@@ -50,22 +51,25 @@ fn create_new_window(
                 let content = if path == "/" {
                     content.into()
                 } else {
-                    println!("path: {}", clean_path);
-                    if clean_path.starts_with("file:///") {
-                        let file_path = &clean_path[8..];
-                        mime = mime_guess::from_path(file_path);
-                        match read(canonicalize(file_path).unwrap_or_default()) {
-                            Err(_) => content.into(),
-                            Ok(bytes) => bytes.into(),
+                    let file_path = if clean_path.starts_with("file://") {
+                        let path = PathBuf::from(&clean_path);
+                        if ":" == &clean_path[9..10] {
+                            path.strip_prefix("file://").unwrap().to_path_buf()
+                        } else {
+                            path.strip_prefix("file:/").unwrap().to_path_buf()
                         }
                     } else {
-                            mime = mime_guess::from_path(clean_path);
-                            match read(canonicalize(clean_path).unwrap_or_default()) {
-                                Err(_) => content.into(),
-                                Ok(bytes) => bytes.into(),
-                            }
+                        PathBuf::from(clean_path)
+                    };
+                    let file_path = file_path.to_str().unwrap();
+
+                    mime = mime_guess::from_path(file_path);
+                    match read(canonicalize(file_path).unwrap_or_default()) {
+                        Err(_) => content.into(),
+                        Ok(bytes) => bytes.into(),
                     }
                 };
+
 
                 let mimetype = mime
                     .first()
