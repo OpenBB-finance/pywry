@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.1.38"
+version = "0.1.391"
 edition = "2021"
 include = ["assets/"]
 
