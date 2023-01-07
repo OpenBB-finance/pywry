@@ -1,10 +1,13 @@
 import asyncio
+import atexit
 import json
 import os
+import sys
 import threading
-from multiprocessing import Process
+from subprocess import PIPE
 from typing import List, Optional
 
+import psutil
 from pywry import pywry
 from websockets.client import connect
 
@@ -14,13 +17,13 @@ class PyWry:
     listens to websockets and shows windows with provided HTML.
     """
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         "Makes the class a 'singleton' by only allowing one instance at a time"
         if not hasattr(cls, "instance"):
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, daemon: bool = False, max_retries: int = 30):
+    def __init__(self, daemon: bool = True, max_retries: int = 30):
         self.max_retries = max_retries
 
         self.outgoing: List[str] = []
@@ -28,20 +31,17 @@ class PyWry:
         self.started = False
         self.daemon = daemon
         self.base = pywry.WindowManager()
-
-        self.runner: Optional[Process] = Process(
-            target=start_backend, daemon=self.daemon
-        )
+        self.runner: Optional[psutil.Popen] = None
+        self.procs: List[psutil.Process] = [psutil.Process(os.getpid())]
         self.thread: Optional[threading.Thread] = None
 
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
 
+        atexit.register(self.close)
+
     def __del__(self):
-        if self.runner:
-            self.runner.terminate()
-        if self.thread:
-            self.thread.join()
+        self.close()
 
     def send_html(self, html: str, title: str = ""):
         """Send html to backend.
@@ -65,9 +65,8 @@ class PyWry:
             # max_retries times, raise an error
             raise ConnectionError("Exceeded max retries")
         try:
-            if not self.started:
+            if not self.runner or not self.runner.is_running():
                 self.handle_start()
-                self.started = True
 
             if self.thread and not self.thread.is_alive():
                 self.start()
@@ -86,15 +85,27 @@ class PyWry:
         port = self.base.get_port()
         if port == 0:
             raise ConnectionError("Could not connect to a port")
-        return str(port)
+        return port
 
     def handle_start(self):
         try:
-            self.runner.start()
-            self.started = True
+            if self.runner and self.runner.is_running():
+                self.procs.remove(self.runner)
+                self.runner.terminate()
+                self.runner.wait()
+
+            self.runner = psutil.Popen(
+                [
+                    sys.executable,
+                    "-c",
+                    "from pywry.core import start_backend; start_backend()",
+                ],
+                env=os.environ,
+                stderr=PIPE,
+            )
+            self.procs.append(self.runner)
         except Exception as e:
-            print(e)
-            self.started = False
+            raise ConnectionRefusedError("Could not start backend") from e
 
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
@@ -137,6 +148,18 @@ class PyWry:
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
         )
         self.thread.start()
+
+    def close(self):
+        """Close the backend."""
+        if self.runner and self.runner.is_running():
+            self.runner.terminate()
+
+        _, alive = psutil.wait_procs(self.procs, timeout=3)
+        for process in alive:
+            process.kill()
+
+        if self.thread and self.thread.is_alive():
+            self.thread.join()
 
 
 def start_backend():

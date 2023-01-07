@@ -9,6 +9,7 @@ classifiers = [
 
 dependencies = [
     'websockets>=5.0.1',
+    'psutil>=5.8.0',
 ]
 
 [build-system]
