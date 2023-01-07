@@ -9,10 +9,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set up manylinux environment
         uses: docker://quay.io/pypa/manylinux2010_x86_64:latest
-        with:
-          args: bash -c "yum install -y bzip2-devel gtk3-devel webkit2gtk3-devel"
       - name: Install Dependencies
         run: |
+          yum install -y bzip2-devel gtk3-devel webkit2gtk3-devel
           python3 -m pip install --upgrade pip
           python3 -m pip install maturin
       - name: Build wheels
