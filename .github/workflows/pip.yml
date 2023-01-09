@@ -122,9 +122,7 @@ jobs:
           source $HOME/.cargo/env
           for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
             "${PYBIN}/pip" install --force-reinstall dist/pywry-0.1.4.tar.gz
-            "${PYBIN}/python" -c 'import pywry'
-            "${PYBIN}/python" -c '--version'
-            "${PYBIN}/python" -X faulthandler -c 'import pywry'
+            "${PYBIN}/python" -c 'import pywry; import platform; print(platform.python_version());'
           done
       # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
       # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
