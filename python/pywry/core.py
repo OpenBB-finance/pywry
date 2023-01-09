@@ -144,6 +144,7 @@ class PyWry:
             if self.max_retries == 0:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
+            self.check_backend()
             await asyncio.sleep(1)
             await self.connect()
 
