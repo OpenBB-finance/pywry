@@ -95,6 +95,9 @@ class PyWry:
                 self.runner.terminate()
                 self.runner.wait()
 
+            port = self.get_clean_port()
+            self.url = f"ws://localhost:{port}"
+
             self.runner = psutil.Popen(
                 [
                     sys.executable,
@@ -105,6 +108,7 @@ class PyWry:
                 stderr=PIPE,
             )
             self.procs.append(self.runner)
+
         except Exception as e:
             raise ConnectionRefusedError("Could not start backend") from e
 
@@ -138,6 +142,7 @@ class PyWry:
             if self.max_retries == 0:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
+            self.check_backend()
             await asyncio.sleep(1)
             await self.connect()
 
@@ -150,17 +155,18 @@ class PyWry:
         )
         self.thread.start()
 
-    def close(self):
+    def close(self, reset: bool = False):
         """Close the backend."""
         if self.runner and self.runner.is_running():
             self.runner.terminate()
 
-        _, alive = psutil.wait_procs(self.procs, timeout=3)
-        for process in alive:
-            process.kill()
+        if not reset:
+            _, alive = psutil.wait_procs(self.procs, timeout=3)
+            for process in alive:
+                process.kill()
 
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+            if self.thread and self.thread.is_alive():
+                self.thread.join()
 
 
 def start_backend():
