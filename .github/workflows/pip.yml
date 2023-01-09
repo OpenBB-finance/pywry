@@ -113,7 +113,7 @@ jobs:
           for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
             "${PYBIN}/pip" install maturin
             "${PYBIN}/pip" install .[dev]
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --compatibility manylinux_2_28
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
           done
       #Try to run and import
       - name: Test Build
