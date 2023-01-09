@@ -48,8 +48,6 @@ fn create_new_window(
                 let clean_path = &path[1..];
                 let content = to_show.html.as_bytes().to_vec();
                 let mut mime = mime_guess::from_path("index.html");
-                println!("path: {}", path);
-                println!("clean_path: {}", clean_path);
 
                 let content = if path == "/" {
                     content.into()
@@ -57,12 +55,8 @@ fn create_new_window(
                     let file_path = if clean_path.starts_with("file://") {
                         let path = PathBuf::from(&clean_path);
                         if ":" == &clean_path[9..10] {
-                            println!("clean_path[6..]: {}", &clean_path[6..]);
-                            println!("clean_path[5..]: {}", &clean_path[5..]);
                             path.strip_prefix("file://").unwrap().to_path_buf()
                         } else {
-                            println!("clean_path[6..]: {}", &clean_path[6..]);
-                            println!("clean_path[5..]: {}", &clean_path[5..]);
                             let path = PathBuf::from(&clean_path[6..]);
                             path.to_path_buf()
                         }
