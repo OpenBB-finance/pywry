@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["cp39-cp39","cp310-cp310","cp311-cp311"]
+        python-version: ["cp39-cp39"] #,"cp310-cp310","cp311-cp311"]
         #python-version: ["3.7", "3.8", "3.9", "3.10"]
         target: [x86_64]
         processor: [ x86_64 ]
@@ -113,7 +113,7 @@ jobs:
           for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
             "${PYBIN}/pip" install maturin
             "${PYBIN}/pip" install .[dev]
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
+            "${PYBIN}/maturin" sdist --manifest-path Cargo.toml
           done
       #Try to run and import
       - name: Test Build

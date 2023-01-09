@@ -22,4 +22,4 @@ dev = [
 
 [tool.maturin]
 python-source = "python"
-include = ["./Cargo.toml", "./src"]
+include = ['Cargo.toml', 'src/**/*']
