@@ -157,17 +157,18 @@ class PyWry:
         )
         self.thread.start()
 
-    def close(self):
+    def close(self, reset: bool = False):
         """Close the backend."""
         if self.runner and self.runner.is_running():
             self.runner.terminate()
 
-        _, alive = psutil.wait_procs(self.procs, timeout=3)
-        for process in alive:
-            process.kill()
+        if not reset:
+            _, alive = psutil.wait_procs(self.procs, timeout=3)
+            for process in alive:
+                process.kill()
 
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+            if self.thread and self.thread.is_alive():
+                self.thread.join()
 
 
 def start_backend():
