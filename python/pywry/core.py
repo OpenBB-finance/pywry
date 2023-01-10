@@ -33,16 +33,17 @@ class PyWry:
         self.base = pywry.WindowManager()
 
         self.runner: Optional[psutil.Popen] = None
-        self.procs: List[psutil.Process] = [psutil.Process(os.getpid())]
+        self.procs: List[psutil.Process] = []
         self.thread: Optional[threading.Thread] = None
 
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
 
-        atexit.register(self.close)
-
     def __del__(self):
-        self.close()
+        if self.started:
+            self.close()
+        else:
+            self.procs.clear()
 
     def send_html(self, html: str, title: str = ""):
         """Send html to backend.
@@ -72,8 +73,7 @@ class PyWry:
             if self.thread and not self.thread.is_alive():
                 self.start()
 
-        except ConnectionRefusedError:
-            self.started = False
+        except Exception:
             self.max_retries -= 1
             self.check_backend()
 
@@ -143,6 +143,7 @@ class PyWry:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
             self.check_backend()
+
             await asyncio.sleep(1)
             await self.connect()
 
@@ -154,6 +155,12 @@ class PyWry:
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
         )
         self.thread.start()
+
+        self.started = True
+        atexit.register(self.close)
+
+        if psutil.Process(os.getpid()) not in self.procs:
+            self.procs.append(psutil.Process(os.getpid()))
 
     def close(self, reset: bool = False):
         """Close the backend."""
