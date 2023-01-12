@@ -58,7 +58,7 @@ class PyWry:
             Title to display in the window, by default ""
         """
         self.check_backend()
-        message = json.dumps({"html": html, "title": title})
+        message = json.dumps({"html_str": html, "title": title})
         self.outgoing.append(message)
 
     def check_backend(self):
@@ -111,14 +111,11 @@ class PyWry:
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 cmd = [
-                    os.path.join(
-                        sys._MEIPASS,
-                        f"pywry{'.exe' if sys.platform == 'win32' else ''}",
-                    ),
+                    os.path.join(sys._MEIPASS, "pywry"),
                     "-start",
                 ]
                 kwargs = {
-                    "stdout": subprocess.STDOUT,
+                    "stdout": subprocess.PIPE,
                     "stderr": subprocess.STDOUT,
                     "stdin": subprocess.PIPE,
                 }
@@ -166,7 +163,7 @@ class PyWry:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
             await self.connect()
 
     def start(self, debug: bool = False):
