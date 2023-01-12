@@ -2,9 +2,9 @@ import asyncio
 import atexit
 import json
 import os
+import subprocess
 import sys
 import threading
-from subprocess import PIPE
 from typing import List, Optional
 
 import psutil
@@ -28,8 +28,10 @@ class PyWry:
 
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
-        self.started = False
         self.daemon = daemon
+        self.started = False
+        self.debug = False
+        self.shell = False
         self.base = pywry.WindowManager()
 
         self.runner: Optional[psutil.Popen] = None
@@ -98,14 +100,35 @@ class PyWry:
             port = self.get_clean_port()
             self.url = f"ws://localhost:{port}"
 
-            self.runner = psutil.Popen(
-                [
+            kwargs = {}
+            if not hasattr(sys, "frozen"):
+                cmd = [
                     sys.executable,
-                    "-c",
-                    "from pywry.core import start_backend; start_backend()",
-                ],
-                env=os.environ,
-                stderr=PIPE,
+                    "-m",
+                    "pywry.backend",
+                    "-start",
+                ]
+                kwargs = {"stderr": subprocess.PIPE}
+            else:
+                cmd = [
+                    os.path.join(
+                        sys._MEIPASS,
+                        f"pywry{'.exe' if sys.platform == 'win32' else ''}",
+                    ),
+                    "-start",
+                ]
+                kwargs = {
+                    "stdout": subprocess.STDOUT,
+                    "stderr": subprocess.STDOUT,
+                    "stdin": subprocess.PIPE,
+                }
+                self.shell = True
+
+            if self.debug:
+                cmd.append("-debug")
+
+            self.runner = psutil.Popen(
+                cmd, env=os.environ, shell=self.shell, **kwargs  # nosec
             )
             self.procs.append(self.runner)
 
@@ -142,13 +165,13 @@ class PyWry:
             if self.max_retries == 0:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
-            self.check_backend()
 
             await asyncio.sleep(1)
             await self.connect()
 
-    def start(self):
+    def start(self, debug: bool = False):
         """Creates a websocket connection that remains open"""
+        self.debug = debug
         self.check_backend()
 
         self.thread = threading.Thread(
@@ -174,16 +197,3 @@ class PyWry:
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
-
-
-def start_backend():
-    """Start the backend."""
-    try:
-        import ctypes  # pylint: disable=import-outside-toplevel
-
-        # We need to set an app id so that the taskbar icon is correct on Windows
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("openbb")
-    except (AttributeError, ImportError, OSError):
-        pass
-    backend = PyWry()
-    backend.base.start(str(os.environ.get("DEBUG_MODE", "false")).lower() == "true")
