@@ -111,7 +111,7 @@ class PyWry:
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 cmd = [
-                    os.path.join(sys._MEIPASS, "pywry"),
+                    os.path.join(sys._MEIPASS, "pywry_backend"),
                     "-start",
                 ]
                 kwargs = {
