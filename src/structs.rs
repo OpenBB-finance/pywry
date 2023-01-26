@@ -4,7 +4,8 @@ use std::fs::{read, read_to_string};
 use wry::application::window::Icon;
 
 pub struct Showable {
-    pub html: String,
+    pub html_path: String,
+    pub html_str: String,
     pub title: String,
     pub height: Option<u32>,
     pub width: Option<u32>,
@@ -19,7 +20,8 @@ impl Showable {
             Ok(item) => item,
         };
 
-        let mut html = json["html"].as_str().unwrap_or_default().to_string();
+        let mut html_path = json["html_path"].as_str().unwrap_or_default().to_string();
+        let html_str = json["html_str"].as_str().unwrap_or_default().to_string();
         let plotly: Value = json["plotly"].clone();
         let icon = json["icon"].as_str().unwrap_or_default().to_string();
         let title = json["title"].as_str().unwrap_or_default().to_string();
@@ -32,7 +34,7 @@ impl Showable {
             let raw_height = plotly["layout"]["height"].as_u64().unwrap_or(600);
             width = Some(u32::try_from(raw_width).unwrap_or(800));
             height = Some(u32::try_from(raw_height).unwrap_or(600));
-            html = read_to_string(html).unwrap_or_default();
+            html_path = read_to_string(html_path).unwrap_or_default();
             figure = Some(plotly);
         }
 
@@ -56,7 +58,8 @@ impl Showable {
         };
 
         Some(Self {
-            html,
+            html_path,
+            html_str,
             title,
             height,
             width,
@@ -69,7 +72,8 @@ impl Showable {
 impl Default for Showable {
     fn default() -> Self {
         Self {
-            html: "<h1 style='color:red'>There was an error displaying the HTML</h1>".to_string(),
+            html_path: "".to_string(),
+            html_str: "<h1 style='color:red'>There was an error displaying the HTML</h1>".to_string(),
             title: "Error Creating Showable Object".to_string(),
             height: None,
             width: None,

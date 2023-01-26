@@ -2,9 +2,9 @@ import asyncio
 import atexit
 import json
 import os
+import subprocess
 import sys
 import threading
-from subprocess import PIPE
 from typing import List, Optional
 
 import psutil
@@ -28,21 +28,24 @@ class PyWry:
 
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
-        self.started = False
         self.daemon = daemon
+        self.started = False
+        self.debug = False
+        self.shell = False
         self.base = pywry.WindowManager()
 
         self.runner: Optional[psutil.Popen] = None
-        self.procs: List[psutil.Process] = [psutil.Process(os.getpid())]
+        self.procs: List[psutil.Process] = []
         self.thread: Optional[threading.Thread] = None
 
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
 
-        atexit.register(self.close)
-
     def __del__(self):
-        self.close()
+        if self.started:
+            self.close()
+        else:
+            self.procs.clear()
 
     def send_html(self, html: str, title: str = ""):
         """Send html to backend.
@@ -55,7 +58,7 @@ class PyWry:
             Title to display in the window, by default ""
         """
         self.check_backend()
-        message = json.dumps({"html": html, "title": title})
+        message = json.dumps({"html_str": html, "title": title})
         self.outgoing.append(message)
 
     def check_backend(self):
@@ -72,8 +75,7 @@ class PyWry:
             if self.thread and not self.thread.is_alive():
                 self.start()
 
-        except ConnectionRefusedError:
-            self.started = False
+        except Exception:
             self.max_retries -= 1
             self.check_backend()
 
@@ -98,14 +100,32 @@ class PyWry:
             port = self.get_clean_port()
             self.url = f"ws://localhost:{port}"
 
-            self.runner = psutil.Popen(
-                [
+            kwargs = {}
+            if not hasattr(sys, "frozen"):
+                cmd = [
                     sys.executable,
-                    "-c",
-                    "from pywry.core import start_backend; start_backend()",
-                ],
-                env=os.environ,
-                stderr=PIPE,
+                    "-m",
+                    "pywry.backend",
+                    "-start",
+                ]
+                kwargs = {"stderr": subprocess.PIPE}
+            else:
+                cmd = [
+                    os.path.join(sys._MEIPASS, "pywry_backend"),
+                    "-start",
+                ]
+                kwargs = {
+                    "stdout": subprocess.PIPE,
+                    "stderr": subprocess.STDOUT,
+                    "stdin": subprocess.PIPE,
+                }
+                self.shell = True
+
+            if self.debug:
+                cmd.append("-debug")
+
+            self.runner = psutil.Popen(
+                cmd, env=os.environ, shell=self.shell, **kwargs  # nosec
             )
             self.procs.append(self.runner)
 
@@ -142,18 +162,25 @@ class PyWry:
             if self.max_retries == 0:
                 raise ConnectionError("Exceed max retries") from exc
             self.max_retries -= 1
-            self.check_backend()
-            await asyncio.sleep(1)
+
+            await asyncio.sleep(3)
             await self.connect()
 
-    def start(self):
+    def start(self, debug: bool = False):
         """Creates a websocket connection that remains open"""
+        self.debug = debug
         self.check_backend()
 
         self.thread = threading.Thread(
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
         )
         self.thread.start()
+
+        self.started = True
+        atexit.register(self.close)
+
+        if psutil.Process(os.getpid()) not in self.procs:
+            self.procs.append(psutil.Process(os.getpid()))
 
     def close(self, reset: bool = False):
         """Close the backend."""
@@ -167,16 +194,3 @@ class PyWry:
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
-
-
-def start_backend():
-    """Start the backend."""
-    try:
-        import ctypes  # pylint: disable=import-outside-toplevel
-
-        # We need to set an app id so that the taskbar icon is correct on Windows
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("openbb")
-    except (AttributeError, ImportError, OSError):
-        pass
-    backend = PyWry()
-    backend.base.start(str(os.environ.get("DEBUG_MODE", "false")).lower() == "true")

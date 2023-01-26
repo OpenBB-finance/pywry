@@ -19,10 +19,21 @@ use wry::{
 };
 
 fn create_new_window(
-    to_show: Showable,
+    mut to_show: Showable,
     event_loop: &EventLoopWindowTarget<()>,
     debug: bool,
 ) -> Result<(WindowId, WebView), String> {
+    if to_show.html_path.is_empty() && to_show.html_str.is_empty() {
+        to_show.html_str = String::from(
+            "<h1 style='color:red'>No html content to show, please provide a html_path or a html_str key</h1>",
+        );
+    }
+
+    let content = if to_show.html_path.is_empty() {
+        to_show.html_str.as_bytes().to_vec()
+    } else {
+        to_show.html_path.as_bytes().to_vec()
+    };
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(to_show.icon);
@@ -46,7 +57,7 @@ fn create_new_window(
             let protocol = item.with_custom_protocol("wry".into(), move |request| {
                 let path = request.uri().path();
                 let clean_path = &path[1..];
-                let content = to_show.html.as_bytes().to_vec();
+                let content = content.clone();
                 let mut mime = mime_guess::from_path("index.html");
 
                 let content = if path == "/" {
