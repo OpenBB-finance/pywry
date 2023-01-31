@@ -25,9 +25,11 @@ impl WindowManager {
         Self { port: target_port }
     }
 
-    fn start(&self, debug: bool) -> PyResult<()> {
+    fn start(&self, debug: bool, port: Option<u16>) -> PyResult<()> {
+        let port = port.unwrap_or(self.port);
+
         let (sender, receiver) = mpsc::channel();
-        match start_wry(self.port, sender, receiver, debug) {
+        match start_wry(port, sender, receiver, debug) {
             Err(error) => {
                 let error_str = format!("Error starting wry server: {}", error);
                 Err(PyValueError::new_err(error_str))
