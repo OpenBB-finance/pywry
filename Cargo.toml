@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 include = ["assets/"]
 
@@ -19,3 +19,4 @@ futures-util = { version="0.3.25", feautres=["stream"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 mime_guess = "2.0"
+urlencoding = "2.1.2"

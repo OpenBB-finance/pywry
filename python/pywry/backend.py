@@ -20,6 +20,6 @@ if __name__ == "__main__":
     sys_args = sys.argv[1:]
     sys_args = [arg.lower() for arg in sys_args]
 
-    if "-start" in sys_args:
+    if "-start" in sys_args or sys.platform == "darwin":
         debug = "-debug" in sys_args
         start_backend(debug)
