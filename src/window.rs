@@ -7,6 +7,7 @@ use std::{
     sync::mpsc::{Receiver, Sender},
 };
 use tokio::{runtime::Runtime, task};
+use urlencoding::decode;
 use wry::{
     application::{
         dpi::LogicalSize,
@@ -64,11 +65,12 @@ fn create_new_window(
                     content.into()
                 } else {
                     let file_path = if clean_path.starts_with("file://") {
-                        let path = PathBuf::from(&clean_path);
-                        if ":" == &clean_path[9..10] {
+                        let decoded = decode(&clean_path).expect("UTF-8").to_string();
+                        let path = PathBuf::from(&decoded);
+                        if ":" == &decoded[9..10] {
                             path.strip_prefix("file://").unwrap().to_path_buf()
                         } else {
-                            let path = PathBuf::from(&clean_path[6..]);
+                            let path = PathBuf::from(&decoded[6..]);
                             path.to_path_buf()
                         }
                     } else {
