@@ -47,18 +47,22 @@ class PyWry:
         else:
             self.procs.clear()
 
-    def send_html(self, html: str, title: str = ""):
+    def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
         """Send html to backend.
 
         Parameters
         ----------
-        html : str
-            HTML to send to backend.
+        html_str : str
+            HTML string to send to backend.
+        html_path : str, optional
+            Path to html file to send to backend, by default ""
         title : str, optional
             Title to display in the window, by default ""
         """
         self.check_backend()
-        message = json.dumps({"html_str": html, "title": title})
+        message = json.dumps(
+            {"html_str": html_str, "html_path": html_path, "title": title}
+        )
         self.outgoing.append(message)
 
     def check_backend(self):
@@ -111,9 +115,13 @@ class PyWry:
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 cmd = [
+                    # pylint: disable=no-member,protected-access
                     os.path.join(sys._MEIPASS, "pywry_backend"),
                     "-start",
                 ]
+                if sys.platform == "darwin":
+                    cmd.pop(-1)
+
                 kwargs = {
                     "stdout": subprocess.PIPE,
                     "stderr": subprocess.STDOUT,
@@ -121,7 +129,7 @@ class PyWry:
                 }
                 self.shell = True
 
-            if self.debug:
+            if self.debug and sys.platform != "darwin":
                 cmd.append("-debug")
 
             self.runner = psutil.Popen(
