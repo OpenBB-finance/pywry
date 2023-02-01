@@ -114,11 +114,10 @@ class PyWry:
                 ]
                 kwargs = {"stderr": subprocess.PIPE}
             else:
-                cmd = [
-                    # pylint: disable=no-member,protected-access
-                    os.path.join(sys._MEIPASS, "pywry_backend"),
-                    "-start",
-                ]
+                # pylint: disable=no-member,protected-access
+                pywrypath = os.path.join(sys._MEIPASS, "pywry_backend")
+                cmd = [f"'{pywrypath}'", "-start"]
+
                 if sys.platform == "darwin":
                     cmd.pop(-1)
 
