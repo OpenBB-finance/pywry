@@ -5,14 +5,15 @@ import os
 import subprocess
 import sys
 import threading
+import traceback
 from asyncio.exceptions import IncompleteReadError
-from pathlib import Path
 from typing import List, Optional
 
 import psutil
-from pywry import pywry
 from websockets.client import connect
 from websockets.exceptions import ConnectionClosedError
+
+from pywry import pywry
 
 
 class BackendFailedToStart(Exception):
@@ -75,6 +76,11 @@ class PyWry:
         )
         self.outgoing.append(message)
 
+    def print_debug(self):
+        """Print debug messages from the backend."""
+        if self.debug:
+            traceback.print_exc()
+
     def check_backend(self):
         """Check if the backend is running."""
 
@@ -89,17 +95,9 @@ class PyWry:
             if self.thread and not self.thread.is_alive():
                 self.start()
 
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, RuntimeError, psutil.ZombieProcess):
+            self.print_debug()
             self.handle_start()
-        except psutil.ZombieProcess:
-            self.hard_restart()
-
-    def hard_restart(self):
-        """Hard restart the backend."""
-        self.max_retries -= 1
-        self.close(True)
-        self.handle_start()
-        self.start()
 
     async def send_test(self):
         """Send data to the backend."""
@@ -117,9 +115,9 @@ class PyWry:
         """Start the backend."""
         try:
             if self.runner and self.runner.is_running():
-                self.procs.remove(self.runner)
                 self.runner.terminate()
                 self.runner.wait()
+                self.procs.remove(self.runner)
 
             port = self.get_clean_port()
             self.url = f"ws://localhost:{port}"
@@ -157,7 +155,8 @@ class PyWry:
             self.procs.append(self.runner)
 
         except psutil.ZombieProcess:
-            self.hard_restart()
+            self.print_debug()
+            self.handle_start()
 
         except Exception as proc_err:
             raise BackendFailedToStart("Could not start backend") from proc_err
@@ -165,7 +164,7 @@ class PyWry:
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
         # wait for the backend to start
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
         try:
             async with connect(
                 self.url,
@@ -193,22 +192,21 @@ class PyWry:
                     await asyncio.sleep(0.1)
 
         except (IncompleteReadError, ConnectionClosedError) as conn_err:
+            self.print_debug()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
-            self.hard_restart()
+            await asyncio.sleep(2)
+            self.check_backend()
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
-            if not self.runner or not self.runner.is_running():
-                self.procs.remove(self.runner)
-                self.runner.terminate()
-                self.runner.wait()
-                self.handle_start()
+            self.print_debug()
+            self.check_backend()
 
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from exc
             self.max_retries -= 1
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
             await self.connect()
 
     def start(self, debug: bool = False):
@@ -216,8 +214,11 @@ class PyWry:
         self.debug = debug
         self.check_backend()
 
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+        try:
+            if self.thread and self.thread.is_alive():
+                self.thread.join()
+        except RuntimeError:
+            self.thread = None
 
         self.thread = threading.Thread(
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
@@ -225,15 +226,17 @@ class PyWry:
         self.thread.start()
 
         self.started = True
-        atexit.register(self.close)
 
         if psutil.Process(os.getpid()) not in self.procs:
             self.procs.append(psutil.Process(os.getpid()))
+            atexit.register(self.close)
 
     def close(self, reset: bool = False):
         """Close the backend."""
         if self.runner and self.runner.is_running():
             self.runner.terminate()
+            self.runner.wait()
+            self.procs.remove(self.runner)
 
         if not reset:
             _, alive = psutil.wait_procs(self.procs, timeout=3)
@@ -242,5 +245,3 @@ class PyWry:
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
-
-        self.runner = None
