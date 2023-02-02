@@ -129,13 +129,19 @@ class PyWry:
                 cmd = [sys.executable, "-m", "pywry.backend", "-start"]
                 kwargs = {"stderr": subprocess.PIPE}
             else:
-                cmd = ["pywry_backend", "-start"]
-
+                pywrypath = os.path.join(
+                    # pylint: disable=E1101,W0212
+                    sys._MEIPASS,
+                    "pywry_backend",
+                )
+                cmd = [
+                    f"'{pywrypath}'",
+                    "-start",
+                ]
                 if sys.platform == "darwin":
                     cmd.pop(-1)
 
                 kwargs = {
-                    "cwd": Path(sys.executable).parent.resolve(),
                     "stdout": subprocess.PIPE,
                     "stderr": subprocess.STDOUT,
                     "stdin": subprocess.PIPE,
@@ -158,6 +164,8 @@ class PyWry:
 
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
+        # wait for the backend to start
+        await asyncio.sleep(5)
         try:
             async with connect(
                 self.url,
