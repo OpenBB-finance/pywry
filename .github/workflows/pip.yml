@@ -26,6 +26,7 @@ jobs:
         run: |
           yum install -y \
               gtk3-devel \
+              glib2-devel \
               webkitgtk4-devel \
               webkit2gtk3-devel \
               libsoup-devel \

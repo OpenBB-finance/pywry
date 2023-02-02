@@ -11,6 +11,7 @@ pub struct Showable {
     pub width: Option<u32>,
     pub icon: Option<Icon>,
     pub figure: Option<Value>,
+    pub png_path: String,
 }
 
 impl Showable {
@@ -28,6 +29,7 @@ impl Showable {
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
         let mut figure: Option<Value> = None;
+        let png_path = json["png_path"].as_str().unwrap_or_default().to_string();
 
         if !plotly.is_null() {
             let raw_width = plotly["layout"]["width"].as_u64().unwrap_or(800);
@@ -41,18 +43,19 @@ impl Showable {
         let icon_object = match read(icon) {
             Err(_) => None,
             Ok(bytes) => {
-                let imagebuffer = match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
-                    Err(_) => None,
-                    Ok(loaded) => {
-                        let imagebuffer = loaded.to_rgba8();
-                        let (icon_width, icon_height) = imagebuffer.dimensions();
-                        let icon_rgba = imagebuffer.into_raw();
-                        match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
-                            Err(_) => None,
-                            Ok(icon) => Some(icon),
+                let imagebuffer =
+                    match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
+                        Err(_) => None,
+                        Ok(loaded) => {
+                            let imagebuffer = loaded.to_rgba8();
+                            let (icon_width, icon_height) = imagebuffer.dimensions();
+                            let icon_rgba = imagebuffer.into_raw();
+                            match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
+                                Err(_) => None,
+                                Ok(icon) => Some(icon),
+                            }
                         }
-                    }
-                };
+                    };
                 imagebuffer
             }
         };
@@ -65,6 +68,7 @@ impl Showable {
             width,
             icon: icon_object,
             figure,
+            png_path,
         })
     }
 }
@@ -73,12 +77,14 @@ impl Default for Showable {
     fn default() -> Self {
         Self {
             html_path: "".to_string(),
-            html_str: "<h1 style='color:red'>There was an error displaying the HTML</h1>".to_string(),
+            html_str: "<h1 style='color:red'>There was an error displaying the HTML</h1>"
+                .to_string(),
             title: "Error Creating Showable Object".to_string(),
             height: None,
             width: None,
             icon: None,
             figure: None,
+            png_path: "".to_string(),
         }
     }
 }

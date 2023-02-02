@@ -126,12 +126,7 @@ class PyWry:
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
-                cmd = [
-                    sys.executable,
-                    "-m",
-                    "pywry.backend",
-                    "-start",
-                ]
+                cmd = [sys.executable, "-m", "pywry.backend", "-start"]
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 cmd = ["pywry_backend", "-start"]

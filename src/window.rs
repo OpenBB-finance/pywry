@@ -50,6 +50,14 @@ fn create_new_window(
         Err(error) => return Err(error.to_string()),
         Ok(item) => item,
     };
+
+    let minimized = !to_show.png_path.is_empty();
+    if minimized {
+        window.set_visible(to_show.png_path.is_empty());
+    } else {
+        window.set_focus();
+    }
+
     let window_id = window.id();
 
     let webview = match WebViewBuilder::new(window) {
@@ -92,21 +100,57 @@ fn create_new_window(
 
                 Response::builder()
                     .header(CONTENT_TYPE, mimetype)
+                    .header("Access-Control-Allow-Origin", "null")
                     .body(content)
                     .map_err(Into::into)
             });
+            let png_path = to_show.png_path.clone();
 
             let init_view = if !to_show.figure.is_none() {
                 let plotly_figure = to_show.figure.unwrap();
-                let initialization_script = format!(
-                    "window.plotly_figure = {};",
-                    serde_json::to_string(&plotly_figure).unwrap_or_default()
-                );
+                let initialization_script = if !png_path.is_empty() {
+                    format!(
+                        "window.plotly_figure = {}; window.save_png = true; window.png_path = '{}';",
+                        serde_json::to_string(&plotly_figure).unwrap_or_default() ,
+                        png_path
+                    )
+                } else {
+                    format!(
+                        "window.plotly_figure = {};",
+                        serde_json::to_string(&plotly_figure).unwrap_or_default()
+                    )
+                };
                 let protocol = protocol.with_initialization_script(&initialization_script);
                 protocol
             } else {
                 protocol
             };
+
+            // we add a download handler to save the png file
+            let init_view = init_view.with_download_started_handler(move |_, suggested_path| {
+                // we change the suggested_path to the png_path
+                if !png_path.is_empty() {
+                    let new_path = PathBuf::from(&png_path).as_path().to_path_buf();
+                    *suggested_path = new_path.clone();
+                    true
+                } else {
+                    true
+                }
+            });
+            let init_view =
+                init_view.with_download_completed_handler(move |_uri, filepath, success| {
+                    if !success {
+                        println!(
+                            "Failed to download to {}",
+                            filepath.unwrap_or_default().to_str().unwrap_or_default()
+                        );
+                    } else if !minimized {
+                        println!(
+                            "Fished downloading to {}",
+                            filepath.unwrap_or_default().to_str().unwrap_or_default()
+                        );
+                    }
+                });
 
             match init_view.with_devtools(debug).with_url("wry://localhost") {
                 Err(error3) => return Err(error3.to_string()),
