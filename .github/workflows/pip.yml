@@ -45,10 +45,10 @@ jobs:
           wget https://download.gnome.org/sources/glib/2.70/glib-2.70.0.tar.xz
           tar -xvf glib-2.70.0.tar.xz
           cd glib-2.70.0
-          ./configure --prefix=/usr
-          make
-          make install
-          cd ../
+          meson build --prefix=/usr --libdir=lib64 --buildtype=release -Dselinux=disabled
+          ninja -C build
+          ninja -C build install
+          cd ..
 
       - name: Setup dev tools
         run: |
