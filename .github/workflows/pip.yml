@@ -38,17 +38,7 @@ jobs:
               gcc-c++ \
               make \
               file \
-              librsvg2-devel\
-              ninja-build \
-
-      - name: Build glib2 2.70.0 from source
-        run: |
-          wget https://download.gnome.org/sources/glib/2.70/glib-2.70.0.tar.xz
-          tar -xvf glib-2.70.0.tar.xz
-          cd glib-2.70.0
-          ninja -C build
-          ninja -C build install
-          cd ..
+              librsvg2-devel
 
       - name: Setup dev tools
         run: |
