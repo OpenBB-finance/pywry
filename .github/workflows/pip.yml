@@ -14,7 +14,7 @@ jobs:
         processor: [x86_64]
         #target: [x86_64, i686]
     container:
-      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+      image: quay.io/pypa/manylinux2014_${{ matrix.processor }}
       options: --user root
     steps:
       - uses: actions/checkout@v1
