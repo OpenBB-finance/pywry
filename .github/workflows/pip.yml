@@ -26,9 +26,7 @@ jobs:
         run: |
           yum install -y \
               gtk3-devel \
-              glib2-devel \
               webkitgtk4-devel \
-              webkit2gtk3-devel \
               libsoup-devel \
               openssl-devel \
               curl \
@@ -39,6 +37,13 @@ jobs:
               make \
               file \
               librsvg2-devel
+          sudo apt install libwebkit2gtk-4.1-dev
+          sudo apt install libayatana-appindicator3-dev
+          sudo apt install libappindicator3-dev
+        with:
+          add-apt-repository: ppa:webkit-team/ppa
+          apt-get: curl wget squashfs-tools gcc gcc-c++ make file librsvg2-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev libappindicator3-dev
+
 
 
       - name: Setup dev tools
