@@ -51,9 +51,9 @@ fn create_new_window(
         Ok(item) => item,
     };
 
-    let minimized = !to_show.png_path.is_empty();
+    let minimized = !to_show.export_image.is_empty();
     if minimized {
-        window.set_visible(to_show.png_path.is_empty());
+        window.set_visible(to_show.export_image.is_empty());
     } else {
         window.set_focus();
     }
@@ -104,15 +104,15 @@ fn create_new_window(
                     .body(content)
                     .map_err(Into::into)
             });
-            let png_path = to_show.png_path.clone();
+            let export_image = to_show.export_image.clone();
 
             let init_view = if !to_show.figure.is_none() {
                 let plotly_figure = to_show.figure.unwrap();
-                let initialization_script = if !png_path.is_empty() {
+                let initialization_script = if !export_image.is_empty() {
                     format!(
-                        "window.plotly_figure = {}; window.save_png = true; window.png_path = '{}';",
+                        "window.plotly_figure = {}; window.save_image = true; window.export_image = '{}';",
                         serde_json::to_string(&plotly_figure).unwrap_or_default() ,
-                        png_path
+                        export_image
                     )
                 } else {
                     format!(
@@ -128,9 +128,9 @@ fn create_new_window(
 
             // we add a download handler to save the png file
             let init_view = init_view.with_download_started_handler(move |_, suggested_path| {
-                // we change the suggested_path to the png_path
-                if !png_path.is_empty() {
-                    let new_path = PathBuf::from(&png_path).as_path().to_path_buf();
+                // we change the suggested_path to the export_image
+                if !export_image.is_empty() {
+                    let new_path = PathBuf::from(&export_image).as_path().to_path_buf();
                     *suggested_path = new_path.clone();
                     true
                 } else {

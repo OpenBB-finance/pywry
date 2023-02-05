@@ -11,7 +11,7 @@ pub struct Showable {
     pub width: Option<u32>,
     pub icon: Option<Icon>,
     pub figure: Option<Value>,
-    pub png_path: String,
+    pub export_image: String,
 }
 
 impl Showable {
@@ -29,7 +29,7 @@ impl Showable {
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
         let mut figure: Option<Value> = None;
-        let png_path = json["png_path"].as_str().unwrap_or_default().to_string();
+        let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
 
         if !plotly.is_null() {
             let raw_width = plotly["layout"]["width"].as_u64().unwrap_or(800);
@@ -68,7 +68,7 @@ impl Showable {
             width,
             icon: icon_object,
             figure,
-            png_path,
+            export_image,
         })
     }
 }
@@ -84,7 +84,7 @@ impl Default for Showable {
             width: None,
             icon: None,
             figure: None,
-            png_path: "".to_string(),
+            export_image: "".to_string(),
         }
     }
 }

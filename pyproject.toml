@@ -18,7 +18,7 @@ build-backend = "maturin"
 
 [project.optional-dependencies]
 dev = [
-    "maturin==0.14.6"
+    "maturin==0.14.12"
 ]
 
 [tool.maturin]

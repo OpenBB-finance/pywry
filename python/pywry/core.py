@@ -10,10 +10,9 @@ from asyncio.exceptions import IncompleteReadError
 from typing import List, Optional
 
 import psutil
+from pywry import pywry
 from websockets.client import connect
 from websockets.exceptions import ConnectionClosedError
-
-from pywry import pywry
 
 
 class BackendFailedToStart(Exception):
@@ -95,9 +94,19 @@ class PyWry:
             if self.thread and not self.thread.is_alive():
                 self.start()
 
-        except (ConnectionRefusedError, RuntimeError, psutil.ZombieProcess):
+        except (ConnectionRefusedError, RuntimeError):
             self.print_debug()
             self.handle_start()
+        except psutil.ZombieProcess:
+            self.print_debug()
+            self.hard_restart()
+
+    def hard_restart(self):
+        """Hard restart the backend."""
+        self.max_retries -= 1
+        self.close(True)
+        self.handle_start()
+        self.start()
 
     async def send_test(self):
         """Send data to the backend."""
@@ -156,7 +165,7 @@ class PyWry:
 
         except psutil.ZombieProcess:
             self.print_debug()
-            self.handle_start()
+            self.hard_restart()
 
         except Exception as proc_err:
             raise BackendFailedToStart("Could not start backend") from proc_err
@@ -195,8 +204,9 @@ class PyWry:
             self.print_debug()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
+            self.hard_restart()
             await asyncio.sleep(2)
-            self.check_backend()
+            await self.connect()
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
             self.print_debug()
@@ -245,3 +255,6 @@ class PyWry:
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
+
+        self.runner = None
+        self.thread = None
