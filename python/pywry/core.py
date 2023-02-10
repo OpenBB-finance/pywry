@@ -173,14 +173,12 @@ class PyWry:
 
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
-        # wait for the backend to start
+        await asyncio.sleep(1)
         try:
             async with connect(
                 self.url,
                 open_timeout=6,
                 timeout=1,
-                ping_interval=None,
-                ping_timeout=None,
                 ssl=None,
             ) as websocket:
                 if self.init_engine:
@@ -221,6 +219,15 @@ class PyWry:
     def start(self, debug: bool = False):
         """Creates a websocket connection that remains open"""
         self.debug = debug
+
+        if not self.started:
+            self.handle_start()
+
+        try:
+            if self.thread and self.thread.is_alive():
+                self.thread.join()
+        except RuntimeError:
+            pass
 
         self.thread = threading.Thread(
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
