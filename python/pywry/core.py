@@ -10,9 +10,10 @@ from asyncio.exceptions import IncompleteReadError
 from typing import List, Optional
 
 import psutil
-from pywry import pywry
 from websockets.client import connect
 from websockets.exceptions import ConnectionClosedError
+
+from pywry import pywry
 
 
 class BackendFailedToStart(Exception):
@@ -33,7 +34,7 @@ class PyWry:
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, daemon: bool = True, max_retries: int = 5):
+    def __init__(self, daemon: bool = True, max_retries: int = 30):
         self.max_retries = max_retries
 
         self.outgoing: List[str] = []
@@ -124,9 +125,9 @@ class PyWry:
         """Start the backend."""
         try:
             if self.runner and self.runner.is_running():
+                self.procs.remove(self.runner)
                 self.runner.terminate()
                 self.runner.wait()
-                self.procs.remove(self.runner)
 
             port = self.get_clean_port()
             self.url = f"ws://localhost:{port}"
@@ -173,7 +174,6 @@ class PyWry:
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
         # wait for the backend to start
-        await asyncio.sleep(3)
         try:
             async with connect(
                 self.url,
@@ -205,30 +205,22 @@ class PyWry:
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
             self.hard_restart()
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             await self.connect()
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
             self.print_debug()
-            self.check_backend()
 
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from exc
             self.max_retries -= 1
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             await self.connect()
 
     def start(self, debug: bool = False):
         """Creates a websocket connection that remains open"""
         self.debug = debug
-        self.check_backend()
-
-        try:
-            if self.thread and self.thread.is_alive():
-                self.thread.join()
-        except RuntimeError:
-            self.thread = None
 
         self.thread = threading.Thread(
             target=asyncio.run, args=(self.connect(),), daemon=self.daemon
@@ -237,6 +229,7 @@ class PyWry:
 
         self.started = True
 
+
         if psutil.Process(os.getpid()) not in self.procs:
             self.procs.append(psutil.Process(os.getpid()))
             atexit.register(self.close)
@@ -244,9 +237,9 @@ class PyWry:
     def close(self, reset: bool = False):
         """Close the backend."""
         if self.runner and self.runner.is_running():
+            self.procs.remove(self.runner)
             self.runner.terminate()
             self.runner.wait()
-            self.procs.remove(self.runner)
 
         if not reset:
             _, alive = psutil.wait_procs(self.procs, timeout=3)
@@ -255,6 +248,3 @@ class PyWry:
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
-
-        self.runner = None
-        self.thread = None
