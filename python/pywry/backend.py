@@ -22,5 +22,5 @@ if __name__ == "__main__":
     sys_args = [arg.lower() for arg in sys_args]
 
     if "-start" in sys_args or sys.platform == "darwin":
-        debug = "-debug" in sys_args or os.environ.get("DEBUG_MODE", False)
+        debug = "-debug" in sys_args or os.environ.get("DEBUG_MODE", "False").lower() == "true"  # noqa
         start_backend(debug)

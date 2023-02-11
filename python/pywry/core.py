@@ -40,20 +40,29 @@ class PyWry:
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
         self.daemon = daemon
-        self.started = False
         self.debug = False
         self.shell = False
         self.base = pywry.WindowManager()
+        try:
+            self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
 
         self.runner: Optional[psutil.Popen] = None
         self.procs: List[psutil.Process] = []
         self.thread: Optional[threading.Thread] = None
+        self.lock: threading.Lock = threading.Lock()
+        self._is_started: asyncio.Event = asyncio.Event()
+        self._is_closed: asyncio.Event = asyncio.Event()
+        self._is_closed.set()
 
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
 
+
     def __del__(self):
-        if self.started:
+        if self._is_started.is_set():
             self.close()
         else:
             self.procs.clear()
@@ -70,7 +79,7 @@ class PyWry:
         title : str, optional
             Title to display in the window, by default ""
         """
-        self.check_backend()
+        self.loop.run_until_complete(self.check_backend())
         message = json.dumps(
             {"html_str": html_str, "html_path": html_path, "title": title}
         )
@@ -81,7 +90,7 @@ class PyWry:
         if self.debug:
             traceback.print_exc()
 
-    def check_backend(self):
+    async def check_backend(self):
         """Check if the backend is running."""
 
         if self.max_retries == 0:
@@ -90,23 +99,23 @@ class PyWry:
             raise BackendFailedToStart("Exceededed max retries")
         try:
             if not self.runner or not self.runner.is_running():
-                self.handle_start()
+                await self.handle_start()
 
             if self.thread and not self.thread.is_alive():
                 self.start()
 
         except (ConnectionRefusedError, RuntimeError):
             self.print_debug()
-            self.handle_start()
+            await self.handle_start()
         except psutil.ZombieProcess:
             self.print_debug()
-            self.hard_restart()
+            await self.hard_restart()
 
-    def hard_restart(self):
+    async def hard_restart(self):
         """Hard restart the backend."""
         self.max_retries -= 1
         self.close(True)
-        self.handle_start()
+        await self.handle_start()
         self.start()
 
     async def send_test(self):
@@ -121,16 +130,20 @@ class PyWry:
             raise ConnectionError("Could not connect to a port")
         return port
 
-    def handle_start(self):
+    async def handle_start(self):
         """Start the backend."""
         try:
-            if self.runner and self.runner.is_running():
-                self.procs.remove(self.runner)
-                self.runner.terminate()
-                self.runner.wait()
-
             port = self.get_clean_port()
-            self.url = f"ws://localhost:{port}"
+            if self.runner and self.runner.is_running():
+                _, alive = psutil.wait_procs([self.runner], timeout=2)
+                if alive:
+                    self.runner.kill()
+                    self.runner.wait(1)
+                    with self.lock:
+                        self.runner = None
+                        self._is_started.clear()
+                        self._is_closed.set()
+                        self.url = f"ws://localhost:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
@@ -164,6 +177,10 @@ class PyWry:
             )
             self.procs.append(self.runner)
 
+            with self.lock:
+                self._is_started.set()
+                self._is_closed.clear()
+
         except psutil.ZombieProcess:
             self.print_debug()
             self.hard_restart()
@@ -173,12 +190,20 @@ class PyWry:
 
     async def connect(self):
         """Connects to backend and maintains the connection until main thread is closed."""
+
+        # We wait for the backend to start
+        while not self._is_started.is_set():
+            await asyncio.sleep(0.1)
+
         await asyncio.sleep(1)
+
         try:
             async with connect(
                 self.url,
                 open_timeout=6,
                 timeout=1,
+                ping_interval=None,
+                ping_timeout=None,
                 ssl=None,
             ) as websocket:
                 if self.init_engine:
@@ -191,7 +216,8 @@ class PyWry:
                 while True:
                     if self.outgoing:
                         data = self.outgoing.pop(0)
-                        self.init_engine.append(data)
+                        with self.lock:
+                            self.init_engine.append(data)
 
                         await websocket.send(data)
                         self.init_engine = []
@@ -208,7 +234,6 @@ class PyWry:
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
             self.print_debug()
-
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from exc
             self.max_retries -= 1
@@ -216,26 +241,16 @@ class PyWry:
             await asyncio.sleep(1)
             await self.connect()
 
+    def run(self):
+        """Run the backend."""
+        asyncio.run(self.connect())
+
     def start(self, debug: bool = False):
         """Creates a websocket connection that remains open"""
         self.debug = debug
 
-        if not self.started:
-            self.handle_start()
-
-        try:
-            if self.thread and self.thread.is_alive():
-                self.thread.join()
-        except RuntimeError:
-            pass
-
-        self.thread = threading.Thread(
-            target=asyncio.run, args=(self.connect(),), daemon=self.daemon
-        )
+        self.thread = threading.Thread(target=self.run, daemon=self.daemon)
         self.thread.start()
-
-        self.started = True
-
 
         if psutil.Process(os.getpid()) not in self.procs:
             self.procs.append(psutil.Process(os.getpid()))
