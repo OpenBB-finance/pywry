@@ -104,19 +104,9 @@ class PyWry:
             if self.thread and not self.thread.is_alive():
                 self.start()
 
-        except (ConnectionRefusedError, RuntimeError):
+        except (ConnectionRefusedError, RuntimeError, psutil.ZombieProcess):
             self.print_debug()
             await self.handle_start()
-        except psutil.ZombieProcess:
-            self.print_debug()
-            await self.hard_restart()
-
-    async def hard_restart(self):
-        """Hard restart the backend."""
-        self.max_retries -= 1
-        self.close(True)
-        await self.handle_start()
-        self.start()
 
     async def send_test(self):
         """Send data to the backend."""
@@ -183,7 +173,7 @@ class PyWry:
 
         except psutil.ZombieProcess:
             self.print_debug()
-            self.hard_restart()
+            await self.handle_start()
 
         except Exception as proc_err:
             raise BackendFailedToStart("Could not start backend") from proc_err
@@ -226,10 +216,10 @@ class PyWry:
 
         except (IncompleteReadError, ConnectionClosedError) as conn_err:
             self.print_debug()
+            await self.handle_start()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
-            self.hard_restart()
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             await self.connect()
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
