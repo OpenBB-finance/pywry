@@ -3,79 +3,79 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  # build-nightly-only:
-  #   name: Build nightly only
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       python-version: ["cp39-cp39", "cp310-cp310", "cp311-cp311"]
-  #       #python-version: ["3.7", "3.8", "3.9", "3.10"]
-  #       target: [x86_64]
-  #       processor: [x86_64]
-  #       #target: [x86_64, i686]
-  #   container:
-  #     image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
-  #     options: --user root
-  #   steps:
-  #     - uses: actions/checkout@v1
-  #     - name: Install nightly rust
-  #       run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+  build-nightly-only:
+    name: Build nightly only
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["cp39-cp39", "cp310-cp310", "cp311-cp311"]
+        #python-version: ["3.7", "3.8", "3.9", "3.10"]
+        target: [x86_64]
+        processor: [x86_64]
+        #target: [x86_64, i686]
+    container:
+      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+      options: --user root
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install nightly rust
+        run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 
-  #     #Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
-  #     - name: Setup sudo apt installs for ubuntu-latest
-  #       run: |
-  #         yum install -y \
-  #             gtk3-devel \
-  #             glib2-devel \
-  #             webkitgtk4-devel \
-  #             webkit2gtk3-devel \
-  #             libsoup-devel \
-  #             openssl-devel \
-  #             curl \
-  #             wget \
-  #             squashfs-tools \
-  #             gcc \
-  #             gcc-c++ \
-  #             make \
-  #             file \
-  #             librsvg2-devel
+      #Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
+      - name: Setup sudo apt installs for ubuntu-latest
+        run: |
+          yum install -y \
+              gtk3-devel \
+              glib2-devel \
+              webkitgtk4-devel \
+              webkit2gtk3-devel \
+              libsoup-devel \
+              openssl-devel \
+              curl \
+              wget \
+              squashfs-tools \
+              gcc \
+              gcc-c++ \
+              make \
+              file \
+              librsvg2-devel
 
-  #     - name: Setup dev tools
-  #       run: |
-  #         yum groupinstall -y "Development Tools"
+      - name: Setup dev tools
+        run: |
+          yum groupinstall -y "Development Tools"
 
-  #     - name: Build
-  #       #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2_28
-  #       #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
-  #       #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux off
-  #       run: |
-  #         source $HOME/.cargo/env
-  #         for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
-  #           "${PYBIN}/pip" install maturin
-  #           "${PYBIN}/pip" install .[dev]
-  #           "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
-  #         done
-  #     #Try to run and import
-  #     - name: Test Build
-  #       if: matrix.target == 'x86_64'
-  #       run: |
-  #         source $HOME/.cargo/env
-  #         for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
-  #           "${PYBIN}/pip" install --force-reinstall dist/pywry-*.tar.gz
-  #           "${PYBIN}/python" -c 'import pywry; import platform; print(platform.python_version());'
-  #         done
-  #     # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
-  #     # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
-  #     # - name: Auditwheel repair
-  #     #   run: |
-  #     #     for wheel in target/wheels/*.whl; do
-  #     #         auditwheel repair "${wheel}"
-  #     #     done
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: wheels
-  #         path: dist/*.tar.gz
+      - name: Build
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2_28
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux 2014
+        #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux off
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/pip" install .[dev]
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
+          done
+      #Try to run and import
+      - name: Test Build
+        if: matrix.target == 'x86_64'
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
+            "${PYBIN}/pip" install --force-reinstall dist/pywry-*.tar.gz
+            "${PYBIN}/python" -c 'import pywry; import platform; print(platform.python_version());'
+          done
+      # Auditwheel isn't generally necessary. This is only shown as refernce for cases where you link
+      # external libraries, in which case you have to set manylinux to off and then use auditwheel repair
+      # - name: Auditwheel repair
+      #   run: |
+      #     for wheel in target/wheels/*.whl; do
+      #         auditwheel repair "${wheel}"
+      #     done
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*.tar.gz
 
   windows:
     runs-on: windows-latest
@@ -108,7 +108,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [macos, windows]
+    needs: [macos, windows, build-nightly-only]
     steps:
       - uses: actions/download-artifact@v3
         with:
