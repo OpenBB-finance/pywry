@@ -14,7 +14,7 @@ jobs:
         processor: [x86_64]
         #target: [x86_64, i686]
     container:
-      image: quay.io/pypa/manylinux_2_28_${{ matrix.processor }}
+      image: quay.io/pypa/manylinux_2_31_${{ matrix.processor }}
       options: --user root
     steps:
       - uses: actions/checkout@v1
@@ -24,21 +24,23 @@ jobs:
       #Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
       - name: Setup sudo apt installs for ubuntu-latest
         run: |
-          yum install -y \
-              gtk3-devel \
-              glib2-devel \
-              webkitgtk4-devel \
-              webkit2gtk3-devel \
-              libsoup-devel \
-              openssl-devel \
+          sudo apt-get update
+          sudo apt-get install -y \
+              libgtk-3-dev \
+              libwebkit2gtk-4.0-dev \
+              libsoup2.4-dev \
+              libssl-dev \
               curl \
               wget \
               squashfs-tools \
               gcc \
-              gcc-c++ \
+              g++ \
               make \
               file \
-              librsvg2-devel
+              librsvg2-dev \
+              libwebkit2gtk-4.1-dev \
+              libayatana-appindicator3-dev \
+              install libappindicator3-dev
 
       - name: Setup dev tools
         run: |
