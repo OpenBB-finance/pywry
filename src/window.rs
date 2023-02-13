@@ -127,30 +127,30 @@ fn create_new_window(
             };
 
             // we add a download handler to save the png file
-            let init_view = init_view.with_download_started_handler(move |_, suggested_path| {
-                // we change the suggested_path to the export_image
-                if !export_image.is_empty() {
-                    let new_path = PathBuf::from(&export_image).as_path().to_path_buf();
-                    *suggested_path = new_path.clone();
-                    true
-                } else {
-                    true
-                }
-            });
-            let init_view =
-                init_view.with_download_completed_handler(move |_uri, filepath, success| {
-                    if !success {
-                        println!(
-                            "Failed to download to {}",
-                            filepath.unwrap_or_default().to_str().unwrap_or_default()
-                        );
-                    } else if !minimized {
-                        println!(
-                            "Fished downloading to {}",
-                            filepath.unwrap_or_default().to_str().unwrap_or_default()
-                        );
-                    }
-                });
+            // let init_view = init_view.with_download_started_handler(move |_, suggested_path| {
+            //     // we change the suggested_path to the export_image
+            //     if !export_image.is_empty() {
+            //         let new_path = PathBuf::from(&export_image).as_path().to_path_buf();
+            //         *suggested_path = new_path.clone();
+            //         true
+            //     } else {
+            //         true
+            //     }
+            // });
+            // let init_view =
+            //     init_view.with_download_completed_handler(move |_uri, filepath, success| {
+            //         if !success {
+            //             println!(
+            //                 "Failed to download to {}",
+            //                 filepath.unwrap_or_default().to_str().unwrap_or_default()
+            //             );
+            //         } else if !minimized {
+            //             println!(
+            //                 "Fished downloading to {}",
+            //                 filepath.unwrap_or_default().to_str().unwrap_or_default()
+            //             );
+            //         }
+            //     });
 
             match init_view.with_devtools(debug).with_url("wry://localhost") {
                 Err(error3) => return Err(error3.to_string()),
