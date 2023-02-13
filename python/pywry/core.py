@@ -60,7 +60,6 @@ class PyWry:
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
 
-
     def __del__(self):
         if self._is_started.is_set():
             self.close()
@@ -140,15 +139,9 @@ class PyWry:
                 cmd = [sys.executable, "-m", "pywry.backend", "-start"]
                 kwargs = {"stderr": subprocess.PIPE}
             else:
-                pywrypath = os.path.join(
-                    # pylint: disable=E1101,W0212
-                    sys._MEIPASS,
-                    "pywry_backend",
-                )
-                cmd = [
-                    f"'{pywrypath}'",
-                    "-start",
-                ]
+                # pylint: disable=E1101,W0212
+                pywrypath = os.path.join(sys._MEIPASS)
+                cmd = ["pywry_backend", "-start"]
                 if sys.platform == "darwin":
                     cmd.pop(-1)
 
@@ -156,6 +149,7 @@ class PyWry:
                     "stdout": subprocess.PIPE,
                     "stderr": subprocess.STDOUT,
                     "stdin": subprocess.PIPE,
+                    "cwd": pywrypath,
                 }
                 self.shell = True
 
@@ -163,10 +157,14 @@ class PyWry:
                 cmd.append("-debug")
 
             self.runner = psutil.Popen(
-                cmd, env=os.environ, shell=self.shell, **kwargs  # nosec
+                cmd,
+                env=os.environ,
+                shell=self.shell,
+                **kwargs,  # nosec
             )
             self.procs.append(self.runner)
 
+            await asyncio.sleep(1)
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
@@ -189,12 +187,7 @@ class PyWry:
 
         try:
             async with connect(
-                self.url,
-                open_timeout=6,
-                timeout=1,
-                ping_interval=None,
-                ping_timeout=None,
-                ssl=None,
+                self.url, open_timeout=6, timeout=1, ssl=None
             ) as websocket:
                 if self.init_engine:
                     # if there is data in the init_engine list,
@@ -216,6 +209,10 @@ class PyWry:
 
         except (IncompleteReadError, ConnectionClosedError) as conn_err:
             self.print_debug()
+            with self.lock:
+                self._is_started.clear()
+                self._is_closed.set()
+                self.url = f"ws://localhost:{self.get_clean_port()}"
             await self.handle_start()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
