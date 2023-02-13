@@ -8,14 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["cp39-cp39", "cp310-cp310", "cp311-cp311"]
-        #python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         target: [x86_64]
         processor: [x86_64]
         #target: [x86_64, i686]
-    container:
-      image: quay.io/pypa/manylinux_2_31_${{ matrix.processor }}
-      options: --user root
+
     steps:
       - uses: actions/checkout@v1
       - name: Install nightly rust
