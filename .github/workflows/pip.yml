@@ -43,7 +43,7 @@ jobs:
               librsvg2-dev \
               libwebkit2gtk-4.1-dev \
               libayatana-appindicator3-dev \
-              install libappindicator3-dev
+              libappindicator3-dev
 
       - name: Setup dev tools
         run: |
