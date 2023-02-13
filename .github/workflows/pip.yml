@@ -14,6 +14,12 @@ jobs:
         #target: [x86_64, i686]
 
     steps:
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
       - uses: actions/checkout@v1
       - name: Install nightly rust
         run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
@@ -49,11 +55,9 @@ jobs:
         #"${PYBIN}/maturin" build -m Cargo.toml -i "${PYBIN}/python" --release --manylinux off
         run: |
           source $HOME/.cargo/env
-          for PYBIN in /opt/python/${{ matrix.python-version }}/bin; do
-            "${PYBIN}/pip" install maturin
-            "${PYBIN}/pip" install .[dev]
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
-          done
+          pip install install maturin
+          pip install install .[dev]
+          pip install build -m Cargo.toml -o dist -i python"${{ matrix.python-version }}" --release --sdist
       #Try to run and import
       - name: Test Build
         if: matrix.target == 'x86_64'
