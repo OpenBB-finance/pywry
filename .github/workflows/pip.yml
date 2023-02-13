@@ -27,7 +27,6 @@ jobs:
       #Insert steps here to install you other dependencies. Note that you're running inside of cent os 7, not ubuntu
       - name: Setup sudo apt installs for ubuntu-latest
         run: |
-          sudo apt-get update
           sudo apt install -y \
               build-essential \
               libgtk-3-dev \
