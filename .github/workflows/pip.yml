@@ -41,6 +41,7 @@ jobs:
               file \
               librsvg2-dev \
               libwebkit2gtk-4.1-dev \
+              libappindicator3-1 \
               libayatana-appindicator3-dev \
               libappindicator3-dev
 
