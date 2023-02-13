@@ -1483,7 +1483,7 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.2.93"
+version = "0.2.94"
 dependencies = [
  "futures-util",
  "image",
@@ -2429,8 +2429,7 @@ checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
 [[package]]
 name = "wry"
 version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26712b3ea99abb29c3b0067b284515e2ccdf5d6df7ac5e21129d71550eb9c3e6"
+source = "git+https://github.com/colin99d/wry?branch=patch-1#e371ca4b03f1ca25fb75fe5c070ecdf8f173c14f"
 dependencies = [
  "base64",
  "block",
