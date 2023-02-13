@@ -43,6 +43,7 @@ class PyWry:
         self.debug = False
         self.shell = False
         self.base = pywry.WindowManager()
+
         try:
             self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         except RuntimeError:
@@ -52,6 +53,7 @@ class PyWry:
         self.runner: Optional[psutil.Popen] = None
         self.procs: List[psutil.Process] = []
         self.thread: Optional[threading.Thread] = None
+
         self.lock: threading.Lock = threading.Lock()
         self._is_started: asyncio.Event = asyncio.Event()
         self._is_closed: asyncio.Event = asyncio.Event()
@@ -128,6 +130,7 @@ class PyWry:
                 if alive:
                     self.runner.kill()
                     self.runner.wait(1)
+                    self.procs.remove(self.runner)
                     with self.lock:
                         self.runner = None
                         self._is_started.clear()
@@ -212,7 +215,6 @@ class PyWry:
             with self.lock:
                 self._is_started.clear()
                 self._is_closed.set()
-                self.url = f"ws://localhost:{self.get_clean_port()}"
             await self.handle_start()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from conn_err
