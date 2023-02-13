@@ -52,7 +52,7 @@ jobs:
           source $HOME/.cargo/env
           pip install install maturin
           pip install install .[dev]
-          pip install build -m Cargo.toml -o dist -i python"${{ matrix.python-version }}" --release --sdist
+          maturin build -m Cargo.toml -o dist -i python"${{ matrix.python-version }}" --release --sdist
       #Try to run and import
       - name: Test Build
         if: matrix.target == 'x86_64'
