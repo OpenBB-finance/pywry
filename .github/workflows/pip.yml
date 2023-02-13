@@ -83,7 +83,7 @@ jobs:
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release -o dist --target univeral2-apple-darwin --find-interpreter
+          args: --release -o dist --univeral2-apple-darwin --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
