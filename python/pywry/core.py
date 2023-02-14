@@ -7,6 +7,7 @@ import sys
 import threading
 import traceback
 from asyncio.exceptions import IncompleteReadError
+from pathlib import Path
 from typing import List, Optional
 
 import psutil
@@ -61,6 +62,8 @@ class PyWry:
 
         port = self.get_clean_port()
         self.url = f"ws://localhost:{port}"
+
+        atexit.register(self.close)
 
     def __del__(self):
         if self._is_started.is_set():
@@ -128,9 +131,9 @@ class PyWry:
             if self.runner and self.runner.is_running():
                 _, alive = psutil.wait_procs([self.runner], timeout=2)
                 if alive:
+                    self.procs.remove(self.runner)
                     self.runner.kill()
                     self.runner.wait(1)
-                    self.procs.remove(self.runner)
                     with self.lock:
                         self.runner = None
                         self._is_started.clear()
@@ -139,25 +142,22 @@ class PyWry:
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
-                cmd = [sys.executable, "-m", "pywry.backend", "-start"]
+                cmd = f"{sys.executable} -m pywry.backend -start"
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212
-                pywrypath = os.path.join(sys._MEIPASS)
-                cmd = ["pywry_backend", "-start"]
+                pywrypath = (Path(sys._MEIPASS) / "pywry_backend").resolve()
+                if sys.platform == "win32":
+                    cmd = f"{pywrypath} -start{' -debug' if self.debug else ''}"
                 if sys.platform == "darwin":
-                    cmd.pop(-1)
+                    cmd = f"'{pywrypath}'"
 
                 kwargs = {
                     "stdout": subprocess.PIPE,
                     "stderr": subprocess.STDOUT,
                     "stdin": subprocess.PIPE,
-                    "cwd": pywrypath,
                 }
                 self.shell = True
-
-            if self.debug and sys.platform != "darwin":
-                cmd.append("-debug")
 
             self.runner = psutil.Popen(
                 cmd,
@@ -167,7 +167,7 @@ class PyWry:
             )
             self.procs.append(self.runner)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
@@ -190,7 +190,12 @@ class PyWry:
 
         try:
             async with connect(
-                self.url, open_timeout=6, timeout=1, ssl=None
+                self.url,
+                open_timeout=6,
+                timeout=1,
+                ping_interval=None,
+                ping_timeout=None,
+                ssl=None,
             ) as websocket:
                 if self.init_engine:
                     # if there is data in the init_engine list,
@@ -223,6 +228,10 @@ class PyWry:
 
         except (ConnectionRefusedError, ConnectionResetError) as exc:
             self.print_debug()
+            with self.lock:
+                self._is_started.clear()
+                self._is_closed.set()
+            await self.handle_start()
             if self.max_retries == 0:
                 raise BackendFailedToStart("Exceeded max retries") from exc
             self.max_retries -= 1
@@ -243,7 +252,6 @@ class PyWry:
 
         if psutil.Process(os.getpid()) not in self.procs:
             self.procs.append(psutil.Process(os.getpid()))
-            atexit.register(self.close)
 
     def close(self, reset: bool = False):
         """Close the backend."""

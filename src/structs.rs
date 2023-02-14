@@ -26,8 +26,8 @@ impl Showable {
         let plotly: Value = json["plotly"].clone();
         let icon = json["icon"].as_str().unwrap_or_default().to_string();
         let title = json["title"].as_str().unwrap_or_default().to_string();
-        let mut height: Option<u32> = None;
-        let mut width: Option<u32> = None;
+        let mut height: Option<u32> = json["height"].as_u64().and_then(|x| u32::try_from(x).ok());
+        let mut width: Option<u32> = json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
         let mut figure: Option<Value> = None;
         let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
 
