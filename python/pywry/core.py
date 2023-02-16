@@ -168,7 +168,7 @@ class PyWry:
             )
             self.procs.append(self.runner)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
