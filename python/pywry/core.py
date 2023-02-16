@@ -134,15 +134,16 @@ class PyWry:
                     self.procs.remove(self.runner)
                     self.runner.kill()
                     self.runner.wait(1)
-                    with self.lock:
-                        self.runner = None
-                        self._is_started.clear()
-                        self._is_closed.set()
-                        self.url = f"ws://localhost:{port}"
+
+                with self.lock:
+                    self.runner = None
+                    self._is_started.clear()
+                    self._is_closed.set()
+                    self.url = f"ws://localhost:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
-                cmd = f"{sys.executable} -m pywry.backend -start"
+                cmd = [sys.executable, "-m", "pywry.backend", "-start"]
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212

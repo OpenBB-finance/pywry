@@ -25,6 +25,7 @@ jobs:
 
       - name: Setup sudo apt installs for ubuntu-latest
         run: |
+          sudo apt update
           sudo apt install -y \
               build-essential \
               libgtk-3-dev \
