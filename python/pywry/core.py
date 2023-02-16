@@ -168,7 +168,7 @@ class PyWry:
             )
             self.procs.append(self.runner)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
@@ -253,6 +253,7 @@ class PyWry:
 
         if psutil.Process(os.getpid()) not in self.procs:
             self.procs.append(psutil.Process(os.getpid()))
+            self.loop.run_until_complete(self.check_backend())
 
     def close(self, reset: bool = False):
         """Close the backend."""
