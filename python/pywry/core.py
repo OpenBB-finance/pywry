@@ -251,9 +251,7 @@ class PyWry:
         self.thread = threading.Thread(target=self.run, daemon=self.daemon)
         self.thread.start()
 
-        if psutil.Process(os.getpid()) not in self.procs:
-            self.procs.append(psutil.Process(os.getpid()))
-            self.loop.run_until_complete(self.check_backend())
+        self.loop.run_until_complete(self.check_backend())
 
     def close(self, reset: bool = False):
         """Close the backend."""
@@ -263,11 +261,7 @@ class PyWry:
             self.runner.wait()
 
         if not reset:
-            self.loop.call_soon_threadsafe(self.loop.stop)
+            for process in self.procs:
+                for child in process.children(recursive=True):
+                    child.kill()
 
-            _, alive = psutil.wait_procs(reversed(self.procs), timeout=2)
-            for process in alive:
-                process.terminate()
-
-            if self.thread and self.thread.is_alive():
-                self.thread.join()
