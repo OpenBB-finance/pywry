@@ -13,7 +13,7 @@ use wry::{
         dpi::LogicalSize,
         event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-        window::{WindowBuilder, WindowId},
+        window::{Theme, WindowBuilder, WindowId},
     },
     http::{header::CONTENT_TYPE, Response},
     webview::{WebView, WebViewBuilder},
@@ -37,7 +37,8 @@ fn create_new_window(
     };
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
-        .with_window_icon(to_show.icon);
+        .with_window_icon(to_show.icon)
+        .with_theme(Some(Theme::Dark));
 
     if to_show.height.is_some() && to_show.width.is_some() {
         pre_window = pre_window.with_inner_size(LogicalSize::new(
@@ -63,47 +64,49 @@ fn create_new_window(
     let webview = match WebViewBuilder::new(window) {
         Err(error2) => return Err(error2.to_string()),
         Ok(item) => {
-            let protocol = item.with_custom_protocol("wry".into(), move |request| {
-                let path = request.uri().path();
-                let clean_path = &path[1..];
-                let content = content.clone();
-                let mut mime = mime_guess::from_path("index.html");
+            let protocol = item
+                .with_background_color((0, 0, 0, 255))
+                .with_custom_protocol("wry".into(), move |request| {
+                    let path = request.uri().path();
+                    let clean_path = &path[1..];
+                    let content = content.clone();
+                    let mut mime = mime_guess::from_path("index.html");
 
-                let content = if path == "/" {
-                    content.into()
-                } else {
-                    let file_path = if clean_path.starts_with("file://") {
-                        let decoded = decode(&clean_path).expect("UTF-8").to_string();
-                        let path = PathBuf::from(&decoded);
-                        if ":" == &decoded[9..10] {
-                            path.strip_prefix("file://").unwrap().to_path_buf()
-                        } else {
-                            let path = PathBuf::from(&decoded[6..]);
-                            path.to_path_buf()
-                        }
+                    let content = if path == "/" {
+                        content.into()
                     } else {
-                        PathBuf::from(clean_path)
+                        let file_path = if clean_path.starts_with("file://") {
+                            let decoded = decode(&clean_path).expect("UTF-8").to_string();
+                            let path = PathBuf::from(&decoded);
+                            if ":" == &decoded[9..10] {
+                                path.strip_prefix("file://").unwrap().to_path_buf()
+                            } else {
+                                let path = PathBuf::from(&decoded[6..]);
+                                path.to_path_buf()
+                            }
+                        } else {
+                            PathBuf::from(clean_path)
+                        };
+                        let file_path = file_path.to_str().unwrap();
+
+                        mime = mime_guess::from_path(file_path);
+                        match read(canonicalize(file_path).unwrap_or_default()) {
+                            Err(_) => content.into(),
+                            Ok(bytes) => bytes.into(),
+                        }
                     };
-                    let file_path = file_path.to_str().unwrap();
 
-                    mime = mime_guess::from_path(file_path);
-                    match read(canonicalize(file_path).unwrap_or_default()) {
-                        Err(_) => content.into(),
-                        Ok(bytes) => bytes.into(),
-                    }
-                };
+                    let mimetype = mime
+                        .first()
+                        .map(|mime| mime.to_string())
+                        .unwrap_or_else(|| "text/plain".to_string());
 
-                let mimetype = mime
-                    .first()
-                    .map(|mime| mime.to_string())
-                    .unwrap_or_else(|| "text/plain".to_string());
-
-                Response::builder()
-                    .header(CONTENT_TYPE, mimetype)
-                    .header("Access-Control-Allow-Origin", "null")
-                    .body(content)
-                    .map_err(Into::into)
-            });
+                    Response::builder()
+                        .header(CONTENT_TYPE, mimetype)
+                        .header("Access-Control-Allow-Origin", "null")
+                        .body(content)
+                        .map_err(Into::into)
+                });
             let export_image = to_show.export_image.clone();
 
             let init_view = if !to_show.figure.is_none() {

@@ -132,7 +132,7 @@ class PyWry:
                 _, alive = psutil.wait_procs([self.runner], timeout=2)
                 if alive:
                     self.procs.remove(self.runner)
-                    self.runner.kill()
+                    self.runner.terminate()
                     self.runner.wait(1)
 
                 with self.lock:
@@ -181,7 +181,7 @@ class PyWry:
             raise BackendFailedToStart("Could not start backend") from proc_err
 
     async def connect(self):
-        """Connects to backend and maintains the connection until main thread is closed."""
+        """Connects to backend and maintains the connection until main thread is closed.""" # noqa: E501
 
         # We wait for the backend to start
         while not self._is_started.is_set():
@@ -263,9 +263,11 @@ class PyWry:
             self.runner.wait()
 
         if not reset:
-            _, alive = psutil.wait_procs(self.procs, timeout=3)
+            self.loop.call_soon_threadsafe(self.loop.stop)
+
+            _, alive = psutil.wait_procs(reversed(self.procs), timeout=2)
             for process in alive:
-                process.kill()
+                process.terminate()
 
             if self.thread and self.thread.is_alive():
                 self.thread.join()
