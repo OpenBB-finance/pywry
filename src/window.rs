@@ -145,17 +145,14 @@ fn create_new_window(
                         path.push(suggested_path.file_name().unwrap());
                     }
                     *suggested_path = path.clone();
-                    true
                 } else if !download_path.is_empty() {
                     let mut path = PathBuf::from(&download_path);
                     if path.is_dir() {
                         path.push(suggested_path.file_name().unwrap());
                     }
                     *suggested_path = path.clone();
-                    true
-                } else {
-                    false
                 }
+                true
             });
             let init_view =
                 init_view.with_download_completed_handler(move |_uri, filepath, success| {
