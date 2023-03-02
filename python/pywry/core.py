@@ -181,7 +181,7 @@ class PyWry:
             raise BackendFailedToStart("Could not start backend") from proc_err
 
     async def connect(self):
-        """Connects to backend and maintains the connection until main thread is closed.""" # noqa: E501
+        """Connects to backend and maintains the connection until main thread is closed."""  # noqa: E501
 
         # We wait for the backend to start
         while not self._is_started.is_set():
@@ -261,7 +261,6 @@ class PyWry:
             self.runner.wait()
 
         if not reset:
-            for process in self.procs:
+            for process in [p for p in self.procs if p.is_running()]:
                 for child in process.children(recursive=True):
                     child.kill()
-

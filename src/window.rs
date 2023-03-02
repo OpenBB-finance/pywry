@@ -108,48 +108,65 @@ fn create_new_window(
                         .map_err(Into::into)
                 });
             let export_image = to_show.export_image.clone();
+            let download_path = to_show.download_path.clone();
 
-            let init_view = if !to_show.figure.is_none() {
-                let plotly_figure = to_show.figure.unwrap();
+            let init_view = if !to_show.data.is_none() || !to_show.figure.is_none() {
+                let variable_name = if !to_show.data.is_none() {
+                    "json_data"
+                } else {
+                    "plotly_figure"
+                };
+
+                let variable_value = if !to_show.data.is_none() {
+                    serde_json::to_string(&to_show.data.unwrap()).unwrap_or_default()
+                } else {
+                    serde_json::to_string(&to_show.figure.unwrap()).unwrap_or_default()
+                };
+
                 let initialization_script = if !export_image.is_empty() {
                     format!(
-                        "window.plotly_figure = {}; window.save_image = true; window.export_image = '{}';",
-                        serde_json::to_string(&plotly_figure).unwrap_or_default() ,
-                        export_image
+                        "window.{} = {}; window.save_image = true; window.export_image = '{}';",
+                        variable_name, variable_value, export_image
                     )
                 } else {
-                    format!(
-                        "window.plotly_figure = {};",
-                        serde_json::to_string(&plotly_figure).unwrap_or_default()
-                    )
+                    format!("window.{} = {};", variable_name, variable_value)
                 };
-                let protocol = protocol.with_initialization_script(&initialization_script);
-                protocol
+
+                protocol.with_initialization_script(&initialization_script)
             } else {
                 protocol
             };
 
-            // we add a download handler to save the png file
+            // we add a download handler, if export_image is set it takes precedence over download_path
             let init_view = init_view.with_download_started_handler(move |_, suggested_path| {
-                // we change the suggested_path to the export_image
                 if !export_image.is_empty() {
-                    let new_path = PathBuf::from(&export_image).as_path().to_path_buf();
-                    *suggested_path = new_path.clone();
+                    let mut path = PathBuf::from(&export_image);
+                    if path.is_dir() {
+                        path.push(suggested_path.file_name().unwrap());
+                    }
+                    *suggested_path = path.clone();
+                    true
+                } else if !download_path.is_empty() {
+                    let mut path = PathBuf::from(&download_path);
+                    if path.is_dir() {
+                        path.push(suggested_path.file_name().unwrap());
+                    }
+                    *suggested_path = path.clone();
                     true
                 } else {
-                    true
+                    false
                 }
             });
             let init_view =
                 init_view.with_download_completed_handler(move |_uri, filepath, success| {
                     if !success {
                         println!(
-                            "Failed to download to {}",
+                            "\nFailed to download to {}",
                             filepath.unwrap_or_default().to_str().unwrap_or_default()
                         );
                     } else if !minimized {
                         println!(
-                            "Fished downloading to {}",
+                            "\nFished downloading to {}",
                             filepath.unwrap_or_default().to_str().unwrap_or_default()
                         );
                     }
