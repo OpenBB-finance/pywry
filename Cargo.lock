@@ -808,9 +808,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75f43d41e26995c17e71ee126451dd3941010b0514a81a9d11f3b341debc2399"
+checksum = "bd6effc99afb63425aff9b05836f029929e345a6148a14b7ecd5ab67af944482"
 dependencies = [
  "bytes",
  "fnv",
@@ -1483,7 +1483,7 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.3.1"
+version = "0.3.5"
 dependencies = [
  "futures-util",
  "image",
@@ -2429,7 +2429,7 @@ checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
 [[package]]
 name = "wry"
 version = "0.27.0"
-source = "git+https://github.com/colin99d/wry?branch=patch-1#e371ca4b03f1ca25fb75fe5c070ecdf8f173c14f"
+source = "git+https://github.com/tauri-apps/wry#7795356a45b1bd015fad0e9973fc5af58c8c339b"
 dependencies = [
  "base64",
  "block",

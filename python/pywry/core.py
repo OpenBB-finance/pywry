@@ -132,7 +132,7 @@ class PyWry:
                 _, alive = psutil.wait_procs([self.runner], timeout=2)
                 if alive:
                     self.procs.remove(self.runner)
-                    self.runner.kill()
+                    self.runner.terminate()
                     self.runner.wait(1)
 
                 with self.lock:
@@ -147,7 +147,7 @@ class PyWry:
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212
-                pywrypath = (Path(sys._MEIPASS) / "pywry_backend").resolve()
+                pywrypath = (Path(sys._MEIPASS) / "OpenBBPlotsBackend").resolve()
                 if sys.platform == "win32":
                     cmd = f"{pywrypath} -start{' -debug' if self.debug else ''}"
                 if sys.platform == "darwin":
@@ -168,7 +168,7 @@ class PyWry:
             )
             self.procs.append(self.runner)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
@@ -181,7 +181,7 @@ class PyWry:
             raise BackendFailedToStart("Could not start backend") from proc_err
 
     async def connect(self):
-        """Connects to backend and maintains the connection until main thread is closed."""
+        """Connects to backend and maintains the connection until main thread is closed."""  # noqa: E501
 
         # We wait for the backend to start
         while not self._is_started.is_set():
@@ -251,8 +251,7 @@ class PyWry:
         self.thread = threading.Thread(target=self.run, daemon=self.daemon)
         self.thread.start()
 
-        if psutil.Process(os.getpid()) not in self.procs:
-            self.procs.append(psutil.Process(os.getpid()))
+        self.loop.run_until_complete(self.check_backend())
 
     def close(self, reset: bool = False):
         """Close the backend."""
@@ -262,9 +261,6 @@ class PyWry:
             self.runner.wait()
 
         if not reset:
-            _, alive = psutil.wait_procs(self.procs, timeout=3)
-            for process in alive:
-                process.kill()
-
-            if self.thread and self.thread.is_alive():
-                self.thread.join()
+            for process in [p for p in self.procs if p.is_running()]:
+                for child in process.children(recursive=True):
+                    child.kill()
