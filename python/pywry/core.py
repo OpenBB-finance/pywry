@@ -144,6 +144,8 @@ class PyWry:
             kwargs = {}
             if not hasattr(sys, "frozen"):
                 cmd = [sys.executable, "-m", "pywry.backend", "-start"]
+                if self.debug:
+                    cmd.append("-debug")
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212
