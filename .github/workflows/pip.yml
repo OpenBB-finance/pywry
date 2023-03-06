@@ -106,7 +106,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [macos, windows, linux]
+    needs: [macos, windows, build-nightly-only]
     steps:
       - uses: actions/download-artifact@v3
         with:
