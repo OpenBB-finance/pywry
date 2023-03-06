@@ -13,20 +13,20 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["maturin>=0.14,<0.15"]
-build-backend = "maturin"
-
-[options]
-setup_requires = [
-    "setuptools>=42",
-    "setuptools-rust>=0.12.1",
+requires = [
+    "maturin>=0.14,<0.15",
+    "setuptools",
+    "setuptools-rust",
     "wheel"
 ]
-include_package_data = true
+build-backend = "maturin"
 
 [project.optional-dependencies]
 dev = [
-    "maturin==0.14.15"
+    "maturin==0.14.15",
+    "setuptools",
+    "setuptools-rust",
+    "wheel",
 ]
 
 [tool.maturin]
