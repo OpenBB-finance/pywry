@@ -6,7 +6,12 @@ use tokio_tungstenite::{
     tungstenite::{Error, Message, Result},
 };
 
-async fn accept_connection(peer: SocketAddr, stream: TcpStream, sender: Sender<String>, debug: bool) {
+async fn accept_connection(
+    peer: SocketAddr,
+    stream: TcpStream,
+    sender: Sender<String>,
+    debug: bool,
+) {
     if let Err(e) = handle_connection(peer, stream, sender, debug).await {
         match e {
             Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),

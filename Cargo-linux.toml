@@ -1,21 +1,27 @@
 [package]
 name = "pywry"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2021"
-include = ["assets/"]
+include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "pywry"
 crate-type = ["cdylib"]
+path = "src/lib.rs"
+
 
 [dependencies]
-pyo3 = { version = "^0.18", features = ["extension-module"] }
+pyo3 = { version = "0.18.0", features = [
+    "extension-module",
+    "generate-import-lib",
+] }
 wry = "0.23"
-image = {version="^0.24.5", default-features = false, features = ["png"] }
+image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio-tungstenite = "^0.18"
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread"] }
-futures-util = { version="^0.3.25", feautres=["stream"]}
+futures-util = { version = "^0.3.25" }
 serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 mime_guess = "^2.0"

@@ -1,34 +1,32 @@
 [project]
 name = "pywry"
+version = "0.3.7"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
 ]
 
-dependencies = [
-    'websockets>=5.0.1',
-    'psutil>=5.8.0',
-]
+dependencies = ['websockets>=5.0.1', 'psutil>=5.8.0']
 
 [build-system]
 requires = [
-    "maturin>=0.14,<0.15",
-    "setuptools",
-    "setuptools-rust",
-    "wheel"
-]
-build-backend = "maturin"
-
-[project.optional-dependencies]
-dev = [
-    "maturin==0.14.15",
-    "setuptools",
-    "setuptools-rust",
+    "setuptools>=58.0.0",
     "wheel",
+    "setuptools_rust>=1.0.0; sys_platform == 'linux'",
+    "maturin>=0.14,<0.15; sys_platform != 'linux'",
 ]
+build-backend = "setuptools_rust.build_meta"
+build = "setuptools_rust.build_meta:__legacy__"
 
 [tool.maturin]
 python-source = "python"
 include = ['Cargo.toml', 'src/**/*']
+
+
+[project.optional-dependencies]
+dev = ["auditwheel", "wheel"]

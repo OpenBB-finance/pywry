@@ -4,6 +4,7 @@
 __pycache__/
 .pytest_cache/
 *.py[cod]
+*.mypy_cache/
 
 # C extensions
 *.so
@@ -28,6 +29,9 @@ venv/
 *.egg-info/
 .installed.cfg
 *.egg
+*.eggs
+wheelhouse/
+venv*/
 
 # Installer logs
 pip-log.txt

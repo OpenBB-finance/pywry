@@ -16,6 +16,8 @@ from websockets.exceptions import ConnectionClosedError
 
 from pywry import pywry
 
+__all__ = ["PyWry", "BackendFailedToStart"]
+
 
 class BackendFailedToStart(Exception):
     """Raised when the backend fails to start"""
@@ -28,6 +30,8 @@ class PyWry:
     """This class handles the wry functionality, by spinning up a rust program that
     listens to websockets and shows windows with provided HTML.
     """
+
+    __version__ = pywry.__version__
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         "Makes the class a 'singleton' by only allowing one instance at a time"
