@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
