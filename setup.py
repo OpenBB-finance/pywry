@@ -1,6 +1,7 @@
 import os
 import sys
 
+import toml
 from setuptools import setup
 
 try:
@@ -30,9 +31,12 @@ if sys.platform == "linux":
         "-C link-args=-Wl,-rpath,$ORIGIN/../../local/lib64/x86_64-linux-gnu "
     )
 
+pyproject = toml.load("pyproject.toml")
+version = pyproject["project"]["version"]
+
 setup(
     name="pywry",
-    version="0.3.7",
+    version=version,
     rust_extensions=[
         RustExtension(
             "pywry.pywry",
@@ -43,7 +47,7 @@ setup(
         )
     ],
     zip_safe=False,
-    setup_requires=["setuptools-rust>=0.10.1", "wheel"],
+    setup_requires=["setuptools-rust>=0.10.1", "wheel", "toml"],
     package_dir={"": "python"},
     python_requires=">=3.8",
     include_package_data=False,

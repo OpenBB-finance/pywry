@@ -2,6 +2,7 @@ import asyncio
 import atexit
 import json
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -65,7 +66,10 @@ class PyWry:
         self._is_closed.set()
 
         port = self.get_clean_port()
-        host_ip = os.environ.get("HOST_IP", "")
+        try:
+            host_ip = socket.gethostbyname(socket.gethostname())
+        except (socket.gaierror, socket.herror, Exception):
+            host_ip = None
         self.host = "localhost" if not host_ip else host_ip
         self.url = f"ws://{self.host}:{port}"
 
