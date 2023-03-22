@@ -185,7 +185,7 @@ fn create_new_window(
                                 }
                                 *default_path = path.clone();
                             }
-                            println!("Saving to {:?}", default_path.display());
+                            println!("\nSaving to {:?}", default_path);
                             true
                         }
                     }
@@ -217,7 +217,7 @@ fn create_new_window(
                     ));
                     #[cfg(target_os = "macos")]
                     if success {
-                        println!("Filed saved {:?}", filepath.display());
+                        println!("\nFile saved {:?}", filepath);
                     }
                 }
             });
