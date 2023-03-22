@@ -65,7 +65,9 @@ class PyWry:
         self._is_closed.set()
 
         port = self.get_clean_port()
-        self.url = f"ws://localhost:{port}"
+        host_ip = os.environ.get("HOST_IP", "")
+        self.host = "localhost" if not host_ip else host_ip
+        self.url = f"ws://{self.host}:{port}"
 
         atexit.register(self.close)
 
@@ -143,7 +145,7 @@ class PyWry:
                     self.runner = None
                     self._is_started.clear()
                     self._is_closed.set()
-                    self.url = f"ws://localhost:{port}"
+                    self.url = f"ws://{self.host}:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):

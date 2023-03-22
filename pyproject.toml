@@ -17,11 +17,9 @@ dependencies = ['websockets>=5.0.1', 'psutil>=5.8.0']
 requires = [
     "setuptools>=58.0.0",
     "wheel",
-    "setuptools_rust>=1.0.0; sys_platform == 'linux'",
-    "maturin>=0.14,<0.15; sys_platform != 'linux'",
+    "maturin>=0.14,<0.15",
 ]
-build-backend = "setuptools_rust.build_meta"
-build = "setuptools_rust.build_meta:__legacy__"
+build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"

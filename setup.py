@@ -47,5 +47,5 @@ setup(
     package_dir={"": "python"},
     python_requires=">=3.8",
     include_package_data=False,
-    package_data={"pywry": ["py.typed"]},
+    package_data={"pywry": ["py.typed", "pywry.pyi"]},
 )

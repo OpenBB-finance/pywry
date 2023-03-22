@@ -53,7 +53,7 @@ async fn handle_connection(
 }
 
 pub async fn run_server(port: u16, sender: Sender<String>, debug: bool) -> Result<(), IoError> {
-    let addr = format!("localhost:{}", port).to_string();
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
