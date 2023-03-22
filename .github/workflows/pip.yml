@@ -53,7 +53,8 @@ jobs:
           rm Cargo.toml && rm Cargo.lock
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-            "${PYBIN}/pip" install --user --upgrade pip wheel auditwheel setuptools-rust maturin
+            "${PYBIN}/pip" install --user --upgrade pip wheel auditwheel setuptools-rust
+            "${PYBIN}/pip" install maturin
             "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release --sdist
             "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
           done
