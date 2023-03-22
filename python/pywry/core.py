@@ -86,7 +86,7 @@ class PyWry:
 
         Parameters
         ----------
-        html_str : str
+        html_str : str, optional
             HTML string to send to backend.
         html_path : str, optional
             Path to html file to send to backend, by default ""
