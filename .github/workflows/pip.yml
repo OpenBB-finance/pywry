@@ -52,7 +52,7 @@ jobs:
           source $HOME/.cargo/env
           rm Cargo.toml && rm Cargo.lock
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
-          for PYBIN in /opt/python/${{ matrix.python.version }}/bin; do
+          for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --user --upgrade pip wheel auditwheel setuptools-rust
             "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
           done
@@ -61,7 +61,7 @@ jobs:
       - name: Test Build
         run: |
           source $HOME/.cargo/env
-          for PYBIN in /opt/python/${{ matrix.python.version }}/bin; do
+          for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --force-reinstall dist/pywry-*.whl
             "${PYBIN}/python" -c 'import pywry; pywry.Pywry(); import platform; print(platform.python_version());'
           done
