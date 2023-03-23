@@ -273,7 +273,7 @@ pub fn start_wry(
             // UserEvent::DownloadStarted
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
-                    println!("Download Started: {}", uri);
+                    println!("\nDownload Started: {}", uri);
                     println!("Path: {}", path);
                 }
             }
@@ -285,7 +285,7 @@ pub fn start_wry(
                 export_image,
             )) => {
                 if debug {
-                    println!("Download Complete: {}", success);
+                    println!("\nDownload Complete: {}", success);
                 }
                 if let Some(filepath) = filepath {
                     let decoded = urldecode(&filepath.to_str().unwrap())
@@ -316,22 +316,22 @@ pub fn start_wry(
                     };
 
                     if debug {
-                        println!("Original Path: {}", file_path.to_str().unwrap());
+                        println!("\nOriginal Path: {}", file_path.to_str().unwrap());
                         println!("New Path: {}", new_path.to_str().unwrap());
                     }
                     let dir = new_path.parent().unwrap();
                     if !dir.exists() {
                         if debug {
-                            println!("Creating directory: {}", dir.display());
+                            println!("\nCreating directory: {}", dir.display());
                         }
                         if let Err(error) = create_dir_all(dir) {
                             println!("Error creating directory: {}", error);
                         }
                     }
                     if let Err(error) = copy(&file_path, &new_path) {
-                        println!("Error copying file: {}", error);
+                        println!("\nError copying file: {}", error);
                     } else {
-                        println!("File saved to: {}", new_path.display());
+                        println!("\nFile saved to: {}", new_path.display());
                         if let Err(error) = remove_file(&file_path) {
                             println!("Error deleting file: {}", error);
                         }
