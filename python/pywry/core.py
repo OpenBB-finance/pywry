@@ -65,9 +65,9 @@ class PyWry:
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
 
-        port = self.get_clean_port()
+        self.port = self.get_clean_port()
         self.host = "localhost"
-        self.url = f"ws://{self.host}:{port}"
+        self.url = f"ws://{self.host}:{self.port}"
 
         atexit.register(self.close)
 
@@ -77,9 +77,11 @@ class PyWry:
         else:
             self.procs.clear()
 
-    def get_valid_host(self, port: int) -> str:
+    async def get_valid_host(self, port: int) -> str:
         """Get a valid host that connects to the backend."""
         try_hosts = [
+            "127.0.1.0",
+            "0.0.0.0",
             "host.docker.internal",
             "localhost",
             socket.gethostbyname(socket.gethostname()),
@@ -87,7 +89,7 @@ class PyWry:
 
         for host in try_hosts:
             try:
-                with socket.create_connection((host, port), timeout=1):
+                if await self.send_test(host, port):
                     return host
             except OSError:
                 pass
@@ -133,10 +135,18 @@ class PyWry:
             self.print_debug()
             await self.handle_start()
 
-    async def send_test(self):
+    async def send_test(self, host: str, port: int):
         """Send data to the backend."""
-        async with connect(self.url) as websocket:
-            await websocket.send("<test>")
+        async with connect(f"ws://{host}:{port}") as websocket:
+            while True:
+                try:
+                    await websocket.send("<test>")
+                    response = await websocket.recv()
+                    if response == "SUCCESS":
+                        return True
+                    return False
+                except (ConnectionClosedError, OSError, IncompleteReadError):
+                    return False
 
     def get_clean_port(self) -> str:
         """Get a clean port to use for the backend."""
@@ -160,6 +170,7 @@ class PyWry:
                     self.runner = None
                     self._is_started.clear()
                     self._is_closed.set()
+                    self.port = port
                     self.url = f"ws://{self.host}:{port}"
 
             kwargs = {}
@@ -212,7 +223,8 @@ class PyWry:
 
         await asyncio.sleep(1)
 
-        self.host = self.get_valid_host(self.base.get_port())
+        self.host = await self.get_valid_host(self.port)
+        self.url = f"ws://{self.host}:{self.port}"
 
         try:
             async with connect(
