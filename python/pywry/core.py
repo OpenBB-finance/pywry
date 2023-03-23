@@ -64,9 +64,29 @@ class PyWry:
         self._is_started: asyncio.Event = asyncio.Event()
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
-        self.hosts = ["localhost", socket.gethostname(), "host.docker.internal"]
-        self.try_hosts = self.hosts
-        self.port = self.get_clean_port()
+
+        self.host = "localhost"
+        try_hosts = [
+            "host.docker.internal",
+            "localhost",
+            socket.gethostbyname(socket.gethostname()),
+        ]
+
+        for host in try_hosts:
+            try:
+                serve_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                serve_socket.bind((host, 0))
+                serve_socket.listen(1)
+                serve_socket.close()
+                self.host = host
+                break
+            except socket.timeout:
+                continue
+            except ConnectionRefusedError:
+                continue
+
+        port = self.get_clean_port()
+        self.url = f"ws://{self.host}:{port}"
 
         atexit.register(self.close)
 
@@ -75,18 +95,6 @@ class PyWry:
             self.close()
         else:
             self.procs.clear()
-
-    def get_clean_host(self):
-        """Get a host that is not localhost."""
-        self.try_hosts = self.try_hosts or self.hosts
-        for host in self.try_hosts:
-            try:
-                socket.gethostbyname(host)
-                self.try_hosts.remove(host)
-                return host
-            except socket.gaierror:
-                pass
-        return "localhost"
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
         """Send html to backend.
@@ -144,7 +152,7 @@ class PyWry:
     async def handle_start(self):
         """Start the backend."""
         try:
-            self.port = self.get_clean_port()
+            port = self.get_clean_port()
             if self.runner and self.runner.is_running():
                 _, alive = psutil.wait_procs([self.runner], timeout=2)
                 if alive:
@@ -156,6 +164,7 @@ class PyWry:
                     self.runner = None
                     self._is_started.clear()
                     self._is_closed.set()
+                    self.url = f"ws://{self.host}:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
@@ -205,7 +214,6 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
-        self.url = f"ws://{self.get_clean_host()}:{self.port}"
         await asyncio.sleep(1)
 
         try:
@@ -282,4 +290,5 @@ class PyWry:
         if not reset:
             for process in [p for p in self.procs if p.is_running()]:
                 for child in process.children(recursive=True):
-                    child.kill()
+                    if child.is_running():
+                        child.kill()
