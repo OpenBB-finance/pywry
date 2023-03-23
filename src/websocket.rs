@@ -46,8 +46,7 @@ async fn handle_connection(
                 };
                 let new_message = Message::Text(response.to_string());
                 ws_stream.send(new_message).await?;
-            }
-            else {
+            } else {
                 let new_message = Message::Text("SUCCESS".to_string());
                 ws_stream.send(new_message).await?;
             }
@@ -55,7 +54,6 @@ async fn handle_connection(
     }
     Ok(())
 }
-
 
 pub async fn run_server(port: u16, sender: Sender<String>, debug: bool) -> Result<(), IoError> {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
