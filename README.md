@@ -67,3 +67,11 @@ sudo apt install libwebkit2gtk-4.0-dev
 ```bash
 sudo dnf install gtk3-devel webkit2gtk4.0-devel
 ```
+
+### macOS
+
+WebKit is native to macOS, so no additional dependencies are needed.
+
+### Windows
+
+WebView2 provided by Microsoft Edge Chromium is used. So wry supports Windows 7, 8, 10 and 11.
