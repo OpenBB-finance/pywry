@@ -2,11 +2,12 @@ import asyncio
 import atexit
 import json
 import os
+import socket
 import subprocess
 import sys
 import threading
 import traceback
-from asyncio.exceptions import IncompleteReadError
+from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
 from typing import List, Optional
 
@@ -15,6 +16,8 @@ from websockets.client import connect
 from websockets.exceptions import ConnectionClosedError
 
 from pywry import pywry
+
+__all__ = ["PyWry", "BackendFailedToStart"]
 
 
 class BackendFailedToStart(Exception):
@@ -28,6 +31,8 @@ class PyWry:
     """This class handles the wry functionality, by spinning up a rust program that
     listens to websockets and shows windows with provided HTML.
     """
+
+    __version__ = pywry.__version__
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         "Makes the class a 'singleton' by only allowing one instance at a time"
@@ -60,8 +65,9 @@ class PyWry:
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
 
-        port = self.get_clean_port()
-        self.url = f"ws://localhost:{port}"
+        self.port = self.get_clean_port()
+        self.host = "localhost"
+        self.url = f"ws://{self.host}:{self.port}"
 
         atexit.register(self.close)
 
@@ -71,12 +77,29 @@ class PyWry:
         else:
             self.procs.clear()
 
+    async def get_valid_host(self, port: int) -> str:
+        """Get a valid host that connects to the backend."""
+        try_hosts = [
+            "127.0.1.0",
+            "0.0.0.0",
+            "host.docker.internal",
+            "localhost",
+            socket.gethostbyname(socket.gethostname()),
+        ]
+
+        for host in try_hosts:
+            try:
+                if await self.send_test(host, port):
+                    return host
+            except (TimeoutError, OSError, CancelledError, IncompleteReadError):
+                pass
+
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
         """Send html to backend.
 
         Parameters
         ----------
-        html_str : str
+        html_str : str, optional
             HTML string to send to backend.
         html_path : str, optional
             Path to html file to send to backend, by default ""
@@ -112,10 +135,23 @@ class PyWry:
             self.print_debug()
             await self.handle_start()
 
-    async def send_test(self):
+    async def send_test(self, host: str, port: int):
         """Send data to the backend."""
-        async with connect(self.url) as websocket:
-            await websocket.send("<test>")
+        async with connect(
+            f"ws://{host}:{port}",
+            open_timeout=6,
+            timeout=1,
+            ssl=None,
+        ) as websocket:
+            while True:
+                try:
+                    await websocket.send("<test>")
+                    response = await websocket.recv()
+                    if response == "SUCCESS":
+                        return True
+                    return False
+                except (ConnectionClosedError, OSError, IncompleteReadError):
+                    return False
 
     def get_clean_port(self) -> str:
         """Get a clean port to use for the backend."""
@@ -139,11 +175,14 @@ class PyWry:
                     self.runner = None
                     self._is_started.clear()
                     self._is_closed.set()
-                    self.url = f"ws://localhost:{port}"
+                    self.port = port
+                    self.url = f"ws://{self.host}:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
                 cmd = [sys.executable, "-m", "pywry.backend", "-start"]
+                if self.debug:
+                    cmd.append("-debug")
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212
@@ -188,6 +227,9 @@ class PyWry:
             await asyncio.sleep(0.1)
 
         await asyncio.sleep(1)
+
+        self.host = await self.get_valid_host(self.port)
+        self.url = f"ws://{self.host}:{self.port}"
 
         try:
             async with connect(
@@ -263,4 +305,5 @@ class PyWry:
         if not reset:
             for process in [p for p in self.procs if p.is_running()]:
                 for child in process.children(recursive=True):
-                    child.kill()
+                    if child.is_running():
+                        child.kill()

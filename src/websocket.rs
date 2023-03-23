@@ -6,7 +6,12 @@ use tokio_tungstenite::{
     tungstenite::{Error, Message, Result},
 };
 
-async fn accept_connection(peer: SocketAddr, stream: TcpStream, sender: Sender<String>, debug: bool) {
+async fn accept_connection(
+    peer: SocketAddr,
+    stream: TcpStream,
+    sender: Sender<String>,
+    debug: bool,
+) {
     if let Err(e) = handle_connection(peer, stream, sender, debug).await {
         match e {
             Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
@@ -41,6 +46,9 @@ async fn handle_connection(
                 };
                 let new_message = Message::Text(response.to_string());
                 ws_stream.send(new_message).await?;
+            } else {
+                let new_message = Message::Text("SUCCESS".to_string());
+                ws_stream.send(new_message).await?;
             }
         }
     }
@@ -48,7 +56,7 @@ async fn handle_connection(
 }
 
 pub async fn run_server(port: u16, sender: Sender<String>, debug: bool) -> Result<(), IoError> {
-    let addr = format!("localhost:{}", port).to_string();
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;

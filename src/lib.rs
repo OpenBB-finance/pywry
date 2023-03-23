@@ -7,6 +7,7 @@ use pyo3::prelude::*;
 use std::sync::mpsc;
 use window::start_wry;
 
+pub mod constants;
 pub mod ports;
 pub mod structs;
 pub mod websocket;
@@ -46,6 +47,7 @@ impl WindowManager {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<WindowManager>()?;
     Ok(())
 }
