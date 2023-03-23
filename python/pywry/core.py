@@ -7,7 +7,7 @@ import subprocess
 import sys
 import threading
 import traceback
-from asyncio.exceptions import IncompleteReadError
+from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
 from typing import List, Optional
 
@@ -91,7 +91,7 @@ class PyWry:
             try:
                 if await self.send_test(host, port):
                     return host
-            except OSError:
+            except (TimeoutError, OSError, CancelledError, IncompleteReadError):
                 pass
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
@@ -137,7 +137,12 @@ class PyWry:
 
     async def send_test(self, host: str, port: int):
         """Send data to the backend."""
-        async with connect(f"ws://{host}:{port}") as websocket:
+        async with connect(
+            f"ws://{host}:{port}",
+            open_timeout=6,
+            timeout=1,
+            ssl=None,
+        ) as websocket:
             while True:
                 try:
                     await websocket.send("<test>")
