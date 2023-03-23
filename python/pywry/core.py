@@ -65,27 +65,8 @@ class PyWry:
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
 
-        self.host = "localhost"
-        try_hosts = [
-            "host.docker.internal",
-            "localhost",
-            socket.gethostbyname(socket.gethostname()),
-        ]
-
-        for host in try_hosts:
-            try:
-                serve_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                serve_socket.bind((host, 0))
-                serve_socket.listen(1)
-                serve_socket.close()
-                self.host = host
-                break
-            except socket.timeout:
-                continue
-            except ConnectionRefusedError:
-                continue
-
         port = self.get_clean_port()
+        self.host = "localhost"
         self.url = f"ws://{self.host}:{port}"
 
         atexit.register(self.close)
@@ -95,6 +76,21 @@ class PyWry:
             self.close()
         else:
             self.procs.clear()
+
+    def get_valid_host(self, port: int) -> str:
+        """Get a valid host that connects to the backend."""
+        try_hosts = [
+            "host.docker.internal",
+            "localhost",
+            socket.gethostbyname(socket.gethostname()),
+        ]
+
+        for host in try_hosts:
+            try:
+                with socket.create_connection((host, port), timeout=1):
+                    return host
+            except OSError:
+                pass
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
         """Send html to backend.
@@ -215,6 +211,8 @@ class PyWry:
             await asyncio.sleep(0.1)
 
         await asyncio.sleep(1)
+
+        self.host = self.get_valid_host(self.base.get_port())
 
         try:
             async with connect(
