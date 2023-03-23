@@ -65,16 +65,7 @@ class PyWry:
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
 
-        port = self.get_clean_port()
-
-        for host in ["host.docker.internal", socket.gethostname()]:
-            try:
-                self.host = socket.gethostbyname(host)
-                break
-            except (socket.gaierror, socket.herror, Exception):
-                self.host = "localhost"
-
-        self.url = f"ws://{self.host}:{port}"
+        self.port = self.get_clean_port()
 
         atexit.register(self.close)
 
@@ -140,7 +131,7 @@ class PyWry:
     async def handle_start(self):
         """Start the backend."""
         try:
-            port = self.get_clean_port()
+            self.port = self.get_clean_port()
             if self.runner and self.runner.is_running():
                 _, alive = psutil.wait_procs([self.runner], timeout=2)
                 if alive:
@@ -152,7 +143,6 @@ class PyWry:
                     self.runner = None
                     self._is_started.clear()
                     self._is_closed.set()
-                    self.url = f"ws://{self.host}:{port}"
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
@@ -202,6 +192,7 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
+        self.url = f"ws://{socket.INADDR_LOOPBACK}:{self.port}"
         await asyncio.sleep(1)
 
         try:
