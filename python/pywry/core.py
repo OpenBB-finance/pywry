@@ -64,7 +64,8 @@ class PyWry:
         self._is_started: asyncio.Event = asyncio.Event()
         self._is_closed: asyncio.Event = asyncio.Event()
         self._is_closed.set()
-
+        self.hosts = ["localhost", socket.gethostname(), "host.docker.internal"]
+        self.try_hosts = self.hosts
         self.port = self.get_clean_port()
 
         atexit.register(self.close)
@@ -74,6 +75,18 @@ class PyWry:
             self.close()
         else:
             self.procs.clear()
+
+    def get_clean_host(self):
+        """Get a host that is not localhost."""
+        self.try_hosts = self.try_hosts or self.hosts
+        for host in self.try_hosts:
+            try:
+                socket.gethostbyname(host)
+                self.try_hosts.remove(host)
+                return host
+            except socket.gaierror:
+                pass
+        return "localhost"
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
         """Send html to backend.
@@ -192,7 +205,7 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
-        self.url = f"ws://{socket.INADDR_LOOPBACK}:{self.port}"
+        self.url = f"ws://{self.get_clean_host()}:{self.port}"
         await asyncio.sleep(1)
 
         try:
