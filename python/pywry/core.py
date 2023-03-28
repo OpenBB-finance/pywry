@@ -18,6 +18,14 @@ from websockets.exceptions import ConnectionClosedError
 from pywry import pywry
 
 __all__ = ["PyWry", "BackendFailedToStart"]
+Websocket_Error = (
+    TimeoutError,
+    OSError,
+    CancelledError,
+    socket.gaierror,
+    ConnectionClosedError,
+    IncompleteReadError,
+)
 
 
 class BackendFailedToStart(Exception):
@@ -91,7 +99,7 @@ class PyWry:
             try:
                 if await self.send_test(host, port):
                     return host
-            except (TimeoutError, OSError, CancelledError, IncompleteReadError):
+            except Websocket_Error:
                 pass
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
@@ -150,7 +158,7 @@ class PyWry:
                     if response == "SUCCESS":
                         return True
                     return False
-                except (ConnectionClosedError, OSError, IncompleteReadError):
+                except Websocket_Error:
                     return False
 
     def get_clean_port(self) -> str:
