@@ -267,18 +267,11 @@ class PyWry:
 
                     await asyncio.sleep(0.1)
 
-        except socket.gaierror:
-            self.print_debug()
-            with self.lock:
-                self._is_started.clear()
-                self._is_closed.set()
-            await self.handle_start()
-            if self.max_retries == 0:
-                raise BackendFailedToStart("Exceeded max retries")
-            await asyncio.sleep(2)
-            await self.connect()
-
-        except (IncompleteReadError, ConnectionClosedError) as conn_err:
+        except (
+            IncompleteReadError,
+            ConnectionClosedError,
+            socket.gaierror,
+        ) as conn_err:
             self.print_debug()
             with self.lock:
                 self._is_started.clear()
