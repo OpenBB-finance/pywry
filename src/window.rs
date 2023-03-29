@@ -143,6 +143,7 @@ fn create_new_window(
                         .map_err(Into::into)
                 });
             let export_image = to_show.export_image.clone();
+            let _is_export = !export_image.is_empty();
             let download_path = to_show.download_path.clone();
 
             let init_view = if !to_show.data.is_none() || !to_show.figure.is_none() {
@@ -175,20 +176,19 @@ fn create_new_window(
             // we add a download handler, if export_image is set it takes precedence over download_path
             let init_view = init_view
                 .with_download_started_handler({
-                    let proxy = proxy.clone();
-                    move |uri: String, default_path| {
-                        let proxy = proxy.clone();
+                    let _proxy = proxy.clone();
+                    move |_uri: String, default_path| {
                         #[cfg(not(target_os = "macos"))]
                         {
-                            if uri.starts_with("blob:") {
-                                let submitted = proxy
-                                    .send_event(UserEvent::BlobReceived(dbg!(uri), window_id))
+                            if _uri.starts_with("blob:") {
+                                let submitted = _proxy
+                                    .send_event(UserEvent::BlobReceived(dbg!(_uri), window_id))
                                     .is_ok();
                                 return submitted;
                             }
-                            let submitted = proxy
+                            let submitted = _proxy
                                 .send_event(UserEvent::DownloadStarted(
-                                    uri.clone(),
+                                    _uri.clone(),
                                     default_path.display().to_string(),
                                 ))
                                 .is_ok();
@@ -198,8 +198,7 @@ fn create_new_window(
 
                         #[cfg(target_os = "macos")]
                         {
-                            let is_export = !export_image.is_empty();
-                            if is_export {
+                            if _is_export {
                                 let mut path = PathBuf::from(&export_image);
                                 if path.is_dir() {
                                     path.push(default_path.file_name().unwrap());
@@ -212,7 +211,7 @@ fn create_new_window(
                                 }
                                 *default_path = path.clone();
                             }
-                            if !is_export {
+                            if !_is_export {
                                 println!("\nSaving to {:?}", default_path);
                             }
                             true
@@ -235,19 +234,21 @@ fn create_new_window(
 
             let init_view = init_view
                 .with_download_completed_handler({
-                    let proxy = proxy.clone();
+                    let _proxy = proxy.clone();
                     move |_uri, filepath, success| {
-                        let filepath = filepath.unwrap_or_default();
+                        let _filepath = filepath.unwrap_or_default();
                         #[cfg(not(target_os = "macos"))]
-                        let _ = proxy.send_event(UserEvent::DownloadComplete(
-                            Some(filepath),
+                        let _ = _proxy.send_event(UserEvent::DownloadComplete(
+                            Some(_filepath),
                             success,
                             download_path.clone(),
                             export_image.clone(),
                         ));
                         #[cfg(target_os = "macos")]
-                        if success && export_image.is_empty() {
-                            println!("File saved\n");
+                        {
+                            if success && !_is_export {
+                                println!("File saved\n");
+                            }
                         }
                     }
                 })
@@ -257,7 +258,10 @@ fn create_new_window(
                         let proxy = proxy.clone();
                         move |uri: String| {
                             let submitted = proxy
-                                .send_event(UserEvent::NewWindow(uri.clone(), get_icon(&window_icon)))
+                                .send_event(UserEvent::NewWindow(
+                                    uri.clone(),
+                                    get_icon(&window_icon),
+                                ))
                                 .is_ok();
                             submitted
                         }
