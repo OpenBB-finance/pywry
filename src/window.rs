@@ -22,9 +22,10 @@ use wry::{
 
 enum UserEvent {
     DownloadStarted(String, String),
-    DownloadComplete(Option<PathBuf>, bool, String, String),
+    DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
+    CloseWindow(WindowId),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
 }
@@ -234,20 +235,23 @@ fn create_new_window(
 
             let init_view = init_view
                 .with_download_completed_handler({
-                    let _proxy = proxy.clone();
+                    let proxy = proxy.clone();
                     move |_uri, filepath, success| {
                         let _filepath = filepath.unwrap_or_default();
                         #[cfg(not(target_os = "macos"))]
-                        let _ = _proxy.send_event(UserEvent::DownloadComplete(
+                        let _ = proxy.send_event(UserEvent::DownloadComplete(
                             Some(_filepath),
                             success,
                             download_path.clone(),
                             export_image.clone(),
+                            window_id,
                         ));
                         #[cfg(target_os = "macos")]
                         {
                             if success && !_is_export {
                                 println!("File saved\n");
+                            } else if success && _is_export {
+                                let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                             }
                         }
                     }
@@ -333,6 +337,7 @@ pub fn start_wry(
                 success,
                 download_path,
                 export_image,
+                window_id,
             )) => {
                 let is_export = !export_image.is_empty();
                 if debug {
@@ -384,11 +389,25 @@ pub fn start_wry(
                     } else {
                         if !is_export {
                             println!("\nFile saved to: {}", new_path.display());
+                        } else {
+                            let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                         }
                         if let Err(error) = remove_file(&file_path) {
                             println!("Error deleting file: {}", error);
                         }
                     }
+                }
+            }
+            // UserEvent::CloseWindow
+            Event::UserEvent(UserEvent::CloseWindow(window_id)) => {
+                if debug {
+                    println!("Close Window");
+                }
+                if let Some(_) = webviews.get(&window_id) {
+                    if debug {
+                        println!("Closing Webview");
+                    }
+                    webviews.remove(&window_id);
                 }
             }
             // UserEvent::BlobChunk
