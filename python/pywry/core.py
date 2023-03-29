@@ -25,7 +25,6 @@ Websocket_Error = (
     socket.gaierror,
     ConnectionClosedError,
     IncompleteReadError,
-    ConnectionResetError,
 )
 
 
