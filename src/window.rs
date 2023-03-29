@@ -25,6 +25,7 @@ enum UserEvent {
     DownloadComplete(Option<PathBuf>, bool, String, String),
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
+    #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
 }
 
@@ -197,7 +198,8 @@ fn create_new_window(
 
                         #[cfg(target_os = "macos")]
                         {
-                            if !export_image.is_empty() {
+                            let is_export = !export_image.is_empty();
+                            if is_export {
                                 let mut path = PathBuf::from(&export_image);
                                 if path.is_dir() {
                                     path.push(default_path.file_name().unwrap());
@@ -210,7 +212,9 @@ fn create_new_window(
                                 }
                                 *default_path = path.clone();
                             }
-                            println!("\nSaving to {:?}", default_path);
+                            if !is_export {
+                                println!("\nSaving to {:?}", default_path);
+                            }
                             true
                         }
                     }
@@ -242,18 +246,25 @@ fn create_new_window(
                             export_image.clone(),
                         ));
                         #[cfg(target_os = "macos")]
-                        if success {
+                        if success && export_image.is_empty() {
                             println!("File saved\n");
                         }
                     }
                 })
                 .with_new_window_req_handler({
-                    let proxy = proxy.clone();
-                    move |uri: String| {
-                        let submitted = proxy
-                            .send_event(UserEvent::NewWindow(uri.clone(), get_icon(&window_icon)))
-                            .is_ok();
-                        submitted
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        let proxy = proxy.clone();
+                        move |uri: String| {
+                            let submitted = proxy
+                                .send_event(UserEvent::NewWindow(uri.clone(), get_icon(&window_icon)))
+                                .is_ok();
+                            submitted
+                        }
+                    }
+                    #[cfg(target_os = "windows")]
+                    {
+                        move |_uri: String| true
                     }
                 });
 
@@ -398,34 +409,20 @@ pub fn start_wry(
                     webviews.remove(&window_id);
                 }
             }
-            // WindowEvent::Destroyed
-            Event::WindowEvent {
-                event: WindowEvent::Destroyed,
-                window_id,
-                ..
-            } => {
-                if debug {
-                    println!("Window Destroyed");
-                }
-                webviews.remove(&window_id);
-            }
             // WindowEvent::NewWindow
+            #[cfg(not(target_os = "windows"))]
             Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
                 if debug {
                     println!("\nNew Window Requested: {}", uri);
                 }
-                #[cfg(target_os = "windows")]
-                let _ = window_icon;
-
-                #[cfg(not(target_os = "windows"))]
                 let pre_window = WindowBuilder::new()
                     .with_title(uri.to_string())
                     .with_window_icon(window_icon)
                     .with_inner_size(LogicalSize::new(1300, 900))
-                    .with_resizable(true);
+                    .with_resizable(true)
+                    .with_theme(Some(Theme::Dark));
 
-                #[cfg(not(target_os = "windows"))]
-                    let window = match pre_window.build(event_loop) {
+                let window = match pre_window.build(event_loop) {
                     Err(error) => {
                         println!("Window Creation Error: {}", error);
                         return;
@@ -433,10 +430,8 @@ pub fn start_wry(
                     Ok(item) => item,
                 };
 
-                #[cfg(not(target_os = "windows"))]
                 let window_id = window.id();
 
-                #[cfg(not(target_os = "windows"))]
                 let webview = WebViewBuilder::new(window)
                     .unwrap()
                     .with_url(&uri)
@@ -444,10 +439,8 @@ pub fn start_wry(
                     .build()
                     .unwrap();
 
-                #[cfg(not(target_os = "windows"))]
                 webviews.insert(window_id, webview);
 
-                #[cfg(not(target_os = "windows"))]
                 if debug {
                     println!("New Window Created");
                 }

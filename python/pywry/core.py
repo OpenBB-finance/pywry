@@ -25,6 +25,7 @@ Websocket_Error = (
     socket.gaierror,
     ConnectionClosedError,
     IncompleteReadError,
+    ConnectionResetError,
 )
 
 
@@ -234,10 +235,11 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(1 if sys.platform == "win32" else 2)
 
-        self.host = await self.get_valid_host(self.port)
-        self.url = f"ws://{self.host}:{self.port}"
+        with self.lock:
+            self.host = await self.get_valid_host(self.port)
+            self.url = f"ws://{self.host}:{self.port}"
 
         try:
             async with connect(
@@ -265,6 +267,17 @@ class PyWry:
                         self.init_engine = []
 
                     await asyncio.sleep(0.1)
+
+        except socket.gaierror:
+            self.print_debug()
+            with self.lock:
+                self._is_started.clear()
+                self._is_closed.set()
+            await self.handle_start()
+            if self.max_retries == 0:
+                raise BackendFailedToStart("Exceeded max retries")
+            await asyncio.sleep(2)
+            await self.connect()
 
         except (IncompleteReadError, ConnectionClosedError) as conn_err:
             self.print_debug()
