@@ -234,10 +234,11 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(1 if sys.platform == "win32" else 2)
 
-        self.host = await self.get_valid_host(self.port)
-        self.url = f"ws://{self.host}:{self.port}"
+        with self.lock:
+            self.host = await self.get_valid_host(self.port)
+            self.url = f"ws://{self.host}:{self.port}"
 
         try:
             async with connect(
@@ -266,7 +267,11 @@ class PyWry:
 
                     await asyncio.sleep(0.1)
 
-        except (IncompleteReadError, ConnectionClosedError) as conn_err:
+        except (
+            IncompleteReadError,
+            ConnectionClosedError,
+            socket.gaierror,
+        ) as conn_err:
             self.print_debug()
             with self.lock:
                 self._is_started.clear()
