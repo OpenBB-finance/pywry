@@ -28,7 +28,12 @@ enum UserEvent {
     CloseWindow(WindowId),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
+    DevTools(WindowId),
 }
+
+const DEV_TOOLS_HTML: &str = "
+    <button onclick=\"window.ipc.postMessage('#DEVTOOLS')\">Open DevTools</button>
+";
 
 fn get_icon(icon: &str) -> Option<Icon> {
     let icon_object = match read(icon) {
@@ -70,6 +75,15 @@ fn create_new_window(
     } else {
         to_show.html_path.as_bytes().to_vec()
     };
+
+    let content = if debug {
+        let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
+        dev_tools_html.extend(content);
+        dev_tools_html
+    } else {
+        content
+    };
+
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(get_icon(&window_icon))
@@ -227,6 +241,9 @@ fn create_new_window(
                         }
                         "#EOF" => {
                             let _ = proxy.send_event(UserEvent::BlobChunk(None));
+                        }
+                        "#DEVTOOLS" => {
+                            let _ = proxy.send_event(UserEvent::DevTools(window_id));
                         }
                         _ => {}
                     }
@@ -430,6 +447,18 @@ pub fn start_wry(
                         println!("Closing Webview");
                     }
                     webviews.remove(&window_id);
+                }
+            }
+            // UserEvent::DevTools
+            Event::UserEvent(UserEvent::DevTools(window_id)) => {
+                if debug {
+                    println!("DevTools");
+                }
+                if let Some(webview) = webviews.get(&window_id) {
+                    if debug {
+                        println!("Opening DevTools");
+                    }
+                    let _ = webview.open_devtools();
                 }
             }
             // WindowEvent::NewWindow
