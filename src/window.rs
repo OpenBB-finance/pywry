@@ -1,4 +1,8 @@
-use crate::{constants::BLOBINIT_SCRIPT, structs::Showable, websocket::run_server};
+use crate::{
+    constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML},
+    structs::Showable,
+    websocket::run_server,
+};
 use image::ImageFormat;
 use mime_guess;
 use std::{
@@ -30,10 +34,6 @@ enum UserEvent {
     NewWindow(String, Option<Icon>),
     DevTools(WindowId),
 }
-
-const DEV_TOOLS_HTML: &str = "
-    <button onclick=\"window.ipc.postMessage('#DEVTOOLS')\">Open DevTools</button>
-";
 
 fn get_icon(icon: &str) -> Option<Icon> {
     let icon_object = match read(icon) {
