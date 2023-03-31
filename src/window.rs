@@ -25,8 +25,11 @@ use wry::{
 };
 
 enum UserEvent {
+    #[cfg(not(target_os = "macos"))]
     DownloadStarted(String, String),
+    #[cfg(not(target_os = "macos"))]
     DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
+    #[cfg(not(target_os = "macos"))]
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
     CloseWindow(WindowId),
@@ -342,6 +345,7 @@ pub fn start_wry(
 
         match event {
             // UserEvent::DownloadStarted
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
                     println!("\nDownload Started: {}", uri);
@@ -349,6 +353,7 @@ pub fn start_wry(
                 }
             }
             // UserEvent::DownloadComplete
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadComplete(
                 filepath,
                 success,
