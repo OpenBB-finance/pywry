@@ -1,4 +1,8 @@
-use crate::{constants::BLOBINIT_SCRIPT, structs::Showable, websocket::run_server};
+use crate::{
+    constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML},
+    structs::Showable,
+    websocket::run_server,
+};
 use image::ImageFormat;
 use mime_guess;
 use std::{
@@ -21,13 +25,17 @@ use wry::{
 };
 
 enum UserEvent {
+    #[cfg(not(target_os = "macos"))]
     DownloadStarted(String, String),
+    #[cfg(not(target_os = "macos"))]
     DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
+    #[cfg(not(target_os = "macos"))]
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
     CloseWindow(WindowId),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
+    DevTools(WindowId),
 }
 
 fn get_icon(icon: &str) -> Option<Icon> {
@@ -70,6 +78,15 @@ fn create_new_window(
     } else {
         to_show.html_path.as_bytes().to_vec()
     };
+
+    let content = if debug {
+        let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
+        dev_tools_html.extend(content);
+        dev_tools_html
+    } else {
+        content
+    };
+
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(get_icon(&window_icon))
@@ -228,6 +245,9 @@ fn create_new_window(
                         "#EOF" => {
                             let _ = proxy.send_event(UserEvent::BlobChunk(None));
                         }
+                        "#DEVTOOLS" => {
+                            let _ = proxy.send_event(UserEvent::DevTools(window_id));
+                        }
                         _ => {}
                     }
                 })
@@ -325,6 +345,7 @@ pub fn start_wry(
 
         match event {
             // UserEvent::DownloadStarted
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
                     println!("\nDownload Started: {}", uri);
@@ -332,6 +353,7 @@ pub fn start_wry(
                 }
             }
             // UserEvent::DownloadComplete
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadComplete(
                 filepath,
                 success,
@@ -430,6 +452,18 @@ pub fn start_wry(
                         println!("Closing Webview");
                     }
                     webviews.remove(&window_id);
+                }
+            }
+            // UserEvent::DevTools
+            Event::UserEvent(UserEvent::DevTools(window_id)) => {
+                if debug {
+                    println!("DevTools");
+                }
+                if let Some(webview) = webviews.get(&window_id) {
+                    if debug {
+                        println!("Opening DevTools");
+                    }
+                    let _ = webview.open_devtools();
                 }
             }
             // WindowEvent::NewWindow

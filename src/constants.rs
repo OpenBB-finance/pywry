@@ -48,3 +48,36 @@ pub const BLOBINIT_SCRIPT: &str = "
     }
   })();
 ";
+
+pub const DEV_TOOLS_HTML: &str = "
+    <style>
+        #devtools {
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background-color: #0f0f0f;
+            color: #fff;
+            display: flex;
+            z-index: 9999;
+        }
+        #devtools button {
+            background-color: #0f0f0f;
+            color: #fff;
+            border: 1px solid #404040;
+            padding: 2px 10px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        #devtools button:hover {
+            background-color: #404040;
+        }
+        #devtools button:active {
+            background-color: #0f0f0f;
+        }
+    </style>
+    <div id='devtools'>
+        <button onclick=\"window.ipc.postMessage('#DEVTOOLS')\">Open DevTools</button>
+    </div>
+";

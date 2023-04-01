@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
@@ -17,7 +17,7 @@ pyo3 = { version = "0.18.0", features = [
     "extension-module",
     "generate-import-lib",
 ] }
-wry = { git = "https://github.com/tauri-apps/wry" }
+wry = { version = "^0.27", features = ["devtools"] }
 image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio-tungstenite = "^0.18"
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread"] }
