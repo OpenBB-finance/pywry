@@ -3,7 +3,7 @@ name: Pip
 on: workflow_dispatch
 
 jobs:
-  build-nightly-only:
+  manylinux_2_28:
     name: Build nightly only
     runs-on: ubuntu-latest
     strategy:
@@ -105,7 +105,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [macos, windows, build-nightly-only]
+    needs: [macos, windows, manylinux_2_28]
     steps:
       - uses: actions/download-artifact@v3
         with:
