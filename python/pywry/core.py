@@ -92,8 +92,11 @@ class PyWry:
             "0.0.0.0",
             "host.docker.internal",
             "localhost",
-            socket.gethostbyname(socket.gethostname()),
         ]
+        try:
+            try_hosts.append(socket.gethostbyname(socket.gethostname()))
+        except socket.gaierror:
+            pass
 
         for host in try_hosts:
             try:

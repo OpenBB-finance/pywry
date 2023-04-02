@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   manylinux_2_28:
-    name: Build nightly only
+    name: Build manylinux_2_28 wheels
     runs-on: ubuntu-latest
     strategy:
       matrix:
