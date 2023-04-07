@@ -18,6 +18,14 @@ from websockets.exceptions import ConnectionClosedError
 from pywry import pywry
 
 __all__ = ["PyWry", "BackendFailedToStart"]
+Websocket_Error = (
+    TimeoutError,
+    OSError,
+    CancelledError,
+    socket.gaierror,
+    ConnectionClosedError,
+    IncompleteReadError,
+)
 
 
 class BackendFailedToStart(Exception):
@@ -84,14 +92,17 @@ class PyWry:
             "0.0.0.0",
             "host.docker.internal",
             "localhost",
-            socket.gethostbyname(socket.gethostname()),
         ]
+        try:
+            try_hosts.append(socket.gethostbyname(socket.gethostname()))
+        except socket.gaierror:
+            pass
 
         for host in try_hosts:
             try:
                 if await self.send_test(host, port):
                     return host
-            except (TimeoutError, OSError, CancelledError, IncompleteReadError):
+            except Websocket_Error:
                 pass
 
     def send_html(self, html_str: str = "", html_path: str = "", title: str = ""):
@@ -150,7 +161,7 @@ class PyWry:
                     if response == "SUCCESS":
                         return True
                     return False
-                except (ConnectionClosedError, OSError, IncompleteReadError):
+                except Websocket_Error:
                     return False
 
     def get_clean_port(self) -> str:
@@ -226,10 +237,11 @@ class PyWry:
         while not self._is_started.is_set():
             await asyncio.sleep(0.1)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(1 if sys.platform == "win32" else 2)
 
-        self.host = await self.get_valid_host(self.port)
-        self.url = f"ws://{self.host}:{self.port}"
+        with self.lock:
+            self.host = await self.get_valid_host(self.port)
+            self.url = f"ws://{self.host}:{self.port}"
 
         try:
             async with connect(
@@ -258,7 +270,11 @@ class PyWry:
 
                     await asyncio.sleep(0.1)
 
-        except (IncompleteReadError, ConnectionClosedError) as conn_err:
+        except (
+            IncompleteReadError,
+            ConnectionClosedError,
+            socket.gaierror,
+        ) as conn_err:
             self.print_debug()
             with self.lock:
                 self._is_started.clear()

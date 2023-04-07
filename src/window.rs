@@ -1,4 +1,9 @@
-use crate::{constants::BLOBINIT_SCRIPT, structs::Showable, websocket::run_server};
+use crate::{
+    constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML},
+    structs::Showable,
+    websocket::run_server,
+};
+use image::ImageFormat;
 use mime_guess;
 use std::{
     collections::HashMap,
@@ -13,17 +18,46 @@ use wry::{
         dpi::LogicalSize,
         event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
-        window::{Theme, WindowBuilder, WindowId},
+        window::{Icon, Theme, WindowBuilder, WindowId},
     },
     http::{header::CONTENT_TYPE, Response},
     webview::{WebView, WebViewBuilder},
 };
 
 enum UserEvent {
+    #[cfg(not(target_os = "macos"))]
     DownloadStarted(String, String),
-    DownloadComplete(Option<PathBuf>, bool, String, String),
+    #[cfg(not(target_os = "macos"))]
+    DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
+    #[cfg(not(target_os = "macos"))]
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
+    CloseWindow(WindowId),
+    #[cfg(not(target_os = "windows"))]
+    NewWindow(String, Option<Icon>),
+    DevTools(WindowId),
+}
+
+fn get_icon(icon: &str) -> Option<Icon> {
+    let icon_object = match read(icon) {
+        Err(_) => None,
+        Ok(bytes) => {
+            let imagebuffer = match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
+                Err(_) => None,
+                Ok(loaded) => {
+                    let imagebuffer = loaded.to_rgba8();
+                    let (icon_width, icon_height) = imagebuffer.dimensions();
+                    let icon_rgba = imagebuffer.into_raw();
+                    match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
+                        Err(_) => None,
+                        Ok(icon) => Some(icon),
+                    }
+                }
+            };
+            imagebuffer
+        }
+    };
+    icon_object
 }
 
 fn create_new_window(
@@ -37,15 +71,25 @@ fn create_new_window(
             "<h1 style='color:red'>No html content to show, please provide a html_path or a html_str key</h1>",
         );
     }
+    let window_icon = to_show.icon.clone();
 
     let content = if to_show.html_path.is_empty() {
         to_show.html_str.as_bytes().to_vec()
     } else {
         to_show.html_path.as_bytes().to_vec()
     };
+
+    let content = if debug {
+        let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
+        dev_tools_html.extend(content);
+        dev_tools_html
+    } else {
+        content
+    };
+
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
-        .with_window_icon(to_show.icon)
+        .with_window_icon(get_icon(&window_icon))
         .with_theme(Some(Theme::Dark));
 
     if to_show.height.is_some() && to_show.width.is_some() {
@@ -117,6 +161,7 @@ fn create_new_window(
                         .map_err(Into::into)
                 });
             let export_image = to_show.export_image.clone();
+            let _is_export = !export_image.is_empty();
             let download_path = to_show.download_path.clone();
 
             let init_view = if !to_show.data.is_none() || !to_show.figure.is_none() {
@@ -149,20 +194,19 @@ fn create_new_window(
             // we add a download handler, if export_image is set it takes precedence over download_path
             let init_view = init_view
                 .with_download_started_handler({
-                    let proxy = proxy.clone();
-                    move |uri: String, default_path| {
-                        let proxy = proxy.clone();
+                    let _proxy = proxy.clone();
+                    move |_uri: String, default_path| {
                         #[cfg(not(target_os = "macos"))]
                         {
-                            if uri.starts_with("blob:") {
-                                let submitted = proxy
-                                    .send_event(UserEvent::BlobReceived(dbg!(uri), window_id))
+                            if _uri.starts_with("blob:") {
+                                let submitted = _proxy
+                                    .send_event(UserEvent::BlobReceived(dbg!(_uri), window_id))
                                     .is_ok();
                                 return submitted;
                             }
-                            let submitted = proxy
+                            let submitted = _proxy
                                 .send_event(UserEvent::DownloadStarted(
-                                    uri.clone(),
+                                    _uri.clone(),
                                     default_path.display().to_string(),
                                 ))
                                 .is_ok();
@@ -172,7 +216,7 @@ fn create_new_window(
 
                         #[cfg(target_os = "macos")]
                         {
-                            if !export_image.is_empty() {
+                            if _is_export {
                                 let mut path = PathBuf::from(&export_image);
                                 if path.is_dir() {
                                     path.push(default_path.file_name().unwrap());
@@ -185,7 +229,9 @@ fn create_new_window(
                                 }
                                 *default_path = path.clone();
                             }
-                            println!("\nSaving to {:?}", default_path);
+                            if !_is_export {
+                                println!("\nSaving to {:?}", default_path);
+                            }
                             true
                         }
                     }
@@ -199,28 +245,56 @@ fn create_new_window(
                         "#EOF" => {
                             let _ = proxy.send_event(UserEvent::BlobChunk(None));
                         }
+                        "#DEVTOOLS" => {
+                            let _ = proxy.send_event(UserEvent::DevTools(window_id));
+                        }
                         _ => {}
                     }
                 })
                 .with_initialization_script(BLOBINIT_SCRIPT);
 
-            let init_view = init_view.with_download_completed_handler({
-                let proxy = proxy.clone();
-                move |_uri, filepath, success| {
-                    let filepath = filepath.unwrap_or_default();
-                    #[cfg(not(target_os = "macos"))]
-                    let _ = proxy.send_event(UserEvent::DownloadComplete(
-                        Some(filepath),
-                        success,
-                        download_path.clone(),
-                        export_image.clone(),
-                    ));
-                    #[cfg(target_os = "macos")]
-                    if success {
-                        println!("\nFile saved {:?}", filepath);
+            let init_view = init_view
+                .with_download_completed_handler({
+                    let proxy = proxy.clone();
+                    move |_uri, filepath, success| {
+                        let _filepath = filepath.unwrap_or_default();
+                        #[cfg(not(target_os = "macos"))]
+                        let _ = proxy.send_event(UserEvent::DownloadComplete(
+                            Some(_filepath),
+                            success,
+                            download_path.clone(),
+                            export_image.clone(),
+                            window_id,
+                        ));
+                        #[cfg(target_os = "macos")]
+                        {
+                            if success && !_is_export {
+                                println!("File saved\n");
+                            } else if success && _is_export {
+                                let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
+                            }
+                        }
                     }
-                }
-            });
+                })
+                .with_new_window_req_handler({
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        let proxy = proxy.clone();
+                        move |uri: String| {
+                            let submitted = proxy
+                                .send_event(UserEvent::NewWindow(
+                                    uri.clone(),
+                                    get_icon(&window_icon),
+                                ))
+                                .is_ok();
+                            submitted
+                        }
+                    }
+                    #[cfg(target_os = "windows")]
+                    {
+                        move |_uri: String| true
+                    }
+                });
 
             match init_view.with_devtools(debug).with_url("wry://localhost") {
                 Err(error3) => return Err(error3.to_string()),
@@ -271,6 +345,7 @@ pub fn start_wry(
 
         match event {
             // UserEvent::DownloadStarted
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
                     println!("\nDownload Started: {}", uri);
@@ -278,12 +353,15 @@ pub fn start_wry(
                 }
             }
             // UserEvent::DownloadComplete
+            #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadComplete(
                 filepath,
                 success,
                 download_path,
                 export_image,
+                window_id,
             )) => {
+                let is_export = !export_image.is_empty();
                 if debug {
                     println!("\nDownload Complete: {}", success);
                 }
@@ -331,17 +409,33 @@ pub fn start_wry(
                     if let Err(error) = copy(&file_path, &new_path) {
                         println!("\nError copying file: {}", error);
                     } else {
-                        println!("\nFile saved to: {}", new_path.display());
+                        if !is_export {
+                            println!("\nFile saved to: {}", new_path.display());
+                        } else {
+                            let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
+                        }
                         if let Err(error) = remove_file(&file_path) {
                             println!("Error deleting file: {}", error);
                         }
                     }
                 }
             }
-            // UserEvent::BlobChunk
-            Event::UserEvent(UserEvent::BlobChunk(chunk)) => {
+            // UserEvent::CloseWindow
+            Event::UserEvent(UserEvent::CloseWindow(window_id)) => {
                 if debug {
-                    println!("Blob Chunk: {:?}", chunk);
+                    println!("Close Window");
+                }
+                if let Some(_) = webviews.get(&window_id) {
+                    if debug {
+                        println!("Closing Webview");
+                    }
+                    webviews.remove(&window_id);
+                }
+            }
+            // UserEvent::BlobChunk
+            Event::UserEvent(UserEvent::BlobChunk(_)) => {
+                if debug {
+                    println!("Blob Chunk");
                 }
             }
             // WindowEvent::CloseRequested
@@ -360,16 +454,53 @@ pub fn start_wry(
                     webviews.remove(&window_id);
                 }
             }
-            // WindowEvent::Destroyed
-            Event::WindowEvent {
-                event: WindowEvent::Destroyed,
-                window_id,
-                ..
-            } => {
+            // UserEvent::DevTools
+            Event::UserEvent(UserEvent::DevTools(window_id)) => {
                 if debug {
-                    println!("Window Destroyed");
+                    println!("DevTools");
                 }
-                webviews.remove(&window_id);
+                if let Some(webview) = webviews.get(&window_id) {
+                    if debug {
+                        println!("Opening DevTools");
+                    }
+                    let _ = webview.open_devtools();
+                }
+            }
+            // WindowEvent::NewWindow
+            #[cfg(not(target_os = "windows"))]
+            Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
+                if debug {
+                    println!("\nNew Window Requested: {}", uri);
+                }
+                let pre_window = WindowBuilder::new()
+                    .with_title(uri.to_string())
+                    .with_window_icon(window_icon)
+                    .with_inner_size(LogicalSize::new(1300, 900))
+                    .with_resizable(true)
+                    .with_theme(Some(Theme::Dark));
+
+                let window = match pre_window.build(event_loop) {
+                    Err(error) => {
+                        println!("Window Creation Error: {}", error);
+                        return;
+                    }
+                    Ok(item) => item,
+                };
+
+                let window_id = window.id();
+
+                let webview = WebViewBuilder::new(window)
+                    .unwrap()
+                    .with_url(&uri)
+                    .unwrap()
+                    .build()
+                    .unwrap();
+
+                webviews.insert(window_id, webview);
+
+                if debug {
+                    println!("New Window Created");
+                }
             }
             _ => {}
         }

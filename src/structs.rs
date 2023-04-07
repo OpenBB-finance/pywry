@@ -1,7 +1,5 @@
-use image::ImageFormat;
 use serde_json::Value;
-use std::fs::{read, read_to_string};
-use wry::application::window::Icon;
+use std::fs::read_to_string;
 
 pub struct Showable {
     pub html_path: String,
@@ -9,7 +7,7 @@ pub struct Showable {
     pub title: String,
     pub height: Option<u32>,
     pub width: Option<u32>,
-    pub icon: Option<Icon>,
+    pub icon: String,
     pub figure: Option<Value>,
     pub data: Option<Value>,
     pub download_path: String,
@@ -55,33 +53,13 @@ impl Showable {
             html_path = read_to_string(html_path).unwrap_or_default();
         }
 
-        let icon_object = match read(icon) {
-            Err(_) => None,
-            Ok(bytes) => {
-                let imagebuffer =
-                    match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
-                        Err(_) => None,
-                        Ok(loaded) => {
-                            let imagebuffer = loaded.to_rgba8();
-                            let (icon_width, icon_height) = imagebuffer.dimensions();
-                            let icon_rgba = imagebuffer.into_raw();
-                            match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
-                                Err(_) => None,
-                                Ok(icon) => Some(icon),
-                            }
-                        }
-                    };
-                imagebuffer
-            }
-        };
-
         Some(Self {
             html_path,
             html_str,
             title,
             height,
             width,
-            icon: icon_object,
+            icon,
             figure,
             data,
             download_path,
@@ -99,7 +77,7 @@ impl Default for Showable {
             title: "Error Creating Showable Object".to_string(),
             height: None,
             width: None,
-            icon: None,
+            icon: "".to_string(),
             figure: None,
             data: None,
             download_path: "".to_string(),
