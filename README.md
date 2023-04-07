@@ -53,7 +53,7 @@ Tao uses [gtk-rs](https://gtk-rs.org/) and its related libraries for window crea
 #### Arch Linux / Manjaro
 
 ```bash
-sudo pacman -S webkit2gtk-4.0
+sudo pacman -S webkit2gtk
 ```
 
 #### Debian / Ubuntu
@@ -65,7 +65,7 @@ sudo apt install libwebkit2gtk-4.0-dev
 #### Fedora / CentOS / AlmaLinux
 
 ```bash
-sudo dnf install gtk3-devel webkit2gtk4.0-devel
+sudo dnf install gtk3-devel webkit2gtk3-devel
 ```
 
 ### macOS
@@ -75,3 +75,12 @@ WebKit is native to macOS, so no additional dependencies are needed.
 ### Windows
 
 WebView2 provided by Microsoft Edge Chromium is used. So wry supports Windows 7, 8, 10 and 11.
+
+
+## Troubleshooting
+
+### Linux
+
+#### `"/lib/x86_64-linux-gnu/libgio-2.0.so.0: undefined symbol: g_module_open_full"`
+
+This is a known issue with the `gio` library. You can fix it by installing the `libglib2.0-dev` package.
