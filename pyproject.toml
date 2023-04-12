@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.4.6"
+version = "0.4.7"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -11,7 +11,7 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 
-dependencies = ['websockets>=5.0.1', 'psutil>=5.8.0']
+dependencies = ['websockets>=11.0.1', 'psutil>=5.8.0,<5.9.4']
 
 [build-system]
 requires = [
