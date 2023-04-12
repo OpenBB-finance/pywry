@@ -473,34 +473,41 @@ pub fn start_wry(
                 if debug {
                     println!("\nNew Window Requested: {}", uri);
                 }
-                let pre_window = WindowBuilder::new()
-                    .with_title(uri.to_string())
-                    .with_window_icon(window_icon)
-                    .with_inner_size(LogicalSize::new(1300, 900))
-                    .with_resizable(true)
-                    .with_theme(Some(Theme::Dark));
+                if uri.starts_with("http://") || uri.starts_with("https://") {
+                    let pre_window = WindowBuilder::new()
+                        .with_title(uri.to_string())
+                        .with_window_icon(window_icon)
+                        .with_inner_size(LogicalSize::new(1300, 900))
+                        .with_resizable(true)
+                        .with_theme(Some(Theme::Dark));
 
-                let window = match pre_window.build(event_loop) {
-                    Err(error) => {
-                        println!("Window Creation Error: {}", error);
-                        return;
+                    let window = match pre_window.build(event_loop) {
+                        Err(error) => {
+                            println!("Window Creation Error: {}", error);
+                            return;
+                        }
+                        Ok(item) => item,
+                    };
+
+                    let window_id = window.id();
+
+                    let webview = WebViewBuilder::new(window)
+                        .unwrap()
+                        .with_url(&uri)
+                        .unwrap()
+                        .build()
+                        .unwrap();
+
+                    webviews.insert(window_id, webview);
+
+                    if debug {
+                        println!("New Window Created");
                     }
-                    Ok(item) => item,
-                };
 
-                let window_id = window.id();
-
-                let webview = WebViewBuilder::new(window)
-                    .unwrap()
-                    .with_url(&uri)
-                    .unwrap()
-                    .build()
-                    .unwrap();
-
-                webviews.insert(window_id, webview);
-
-                if debug {
-                    println!("New Window Created");
+                } else {
+                    if debug {
+                        println!("Invalid URI tried to open in new window: {}", uri);
+                    }
                 }
             }
             _ => {}
