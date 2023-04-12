@@ -90,6 +90,7 @@ fn create_new_window(
     let mut pre_window = WindowBuilder::new()
         .with_title(to_show.title)
         .with_window_icon(get_icon(&window_icon))
+        .with_min_inner_size(LogicalSize::new(800, 450))
         .with_theme(Some(Theme::Dark));
 
     if to_show.height.is_some() && to_show.width.is_some() {
