@@ -33,9 +33,12 @@ enum UserEvent {
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
     CloseWindow(WindowId),
+    DevTools(WindowId),
+    OpenFile(Option<PathBuf>),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
-    DevTools(WindowId),
+    #[cfg(target_os = "macos")]
+    MacDownloadComplete(Option<PathBuf>, WindowId),
 }
 
 fn get_icon(icon: &str) -> Option<Icon> {
@@ -228,10 +231,14 @@ fn create_new_window(
                                 if path.is_dir() {
                                     path.push(default_path.file_name().unwrap());
                                 }
+                                _proxy
+                                    .send_event(UserEvent::MacDownloadComplete(
+                                        Some(path.clone()),
+                                        window_id,
+                                    ))
+                                    .unwrap();
+
                                 *default_path = path.clone();
-                            }
-                            if !_is_export {
-                                println!("\nSaving to {:?}", default_path);
                             }
                             true
                         }
@@ -249,6 +256,10 @@ fn create_new_window(
                         "#DEVTOOLS" => {
                             let _ = proxy.send_event(UserEvent::DevTools(window_id));
                         }
+                        _ if string.starts_with("#OPEN:") => {
+                            let _ = proxy
+                                .send_event(UserEvent::OpenFile(Some(PathBuf::from(&string[6..]))));
+                        }
                         _ => {}
                     }
                 })
@@ -259,6 +270,7 @@ fn create_new_window(
                     let proxy = proxy.clone();
                     move |_uri, filepath, success| {
                         let _filepath = filepath.unwrap_or_default();
+
                         #[cfg(not(target_os = "macos"))]
                         let _ = proxy.send_event(UserEvent::DownloadComplete(
                             Some(_filepath),
@@ -267,11 +279,10 @@ fn create_new_window(
                             export_image.clone(),
                             window_id,
                         ));
+
                         #[cfg(target_os = "macos")]
                         {
-                            if success && !_is_export {
-                                println!("File saved\n");
-                            } else if success && _is_export {
+                            if success && _is_export {
                                 let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                             }
                         }
@@ -349,8 +360,10 @@ pub fn start_wry(
             #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
-                    println!("\nDownload Started: {}", uri);
-                    println!("Path: {}", path);
+                    if uri.len() < 200 {
+                        println!("\nDownload Started: {}", uri);
+                    }
+                    println!("\nPath: {}", path);
                 }
             }
             // UserEvent::DownloadComplete
@@ -411,12 +424,51 @@ pub fn start_wry(
                         println!("\nError copying file: {}", error);
                     } else {
                         if !is_export {
-                            println!("\nFile saved to: {}", new_path.display());
+                            if let Some(webview) = webviews.get(&window_id) {
+                                let _ = webview.evaluate_script(&format!(
+                                    "openPopup('popup_download', {:?})",
+                                    new_path.to_str().unwrap()
+                                ));
+                            }
                         } else {
                             let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                         }
                         if let Err(error) = remove_file(&file_path) {
                             println!("Error deleting file: {}", error);
+                        }
+                    }
+                }
+            }
+            // UserEvent::MacDownloadCompleted
+            #[cfg(target_os = "macos")]
+            Event::UserEvent(UserEvent::MacDownloadComplete(filepath, window_id)) => {
+                if debug {
+                    println!("Mac Download Completed");
+                }
+                if let Some(webview) = webviews.get(&window_id) {
+                    if let Some(filepath) = filepath {
+                        let _ = webview.evaluate_script(&format!(
+                            "openPopup('popup_download', {:?})",
+                            filepath.to_str().unwrap()
+                        ));
+                    }
+                }
+            }
+            // UserEvent::OpenFile
+            Event::UserEvent(UserEvent::OpenFile(filepath)) => {
+                if debug {
+                    println!("Open File");
+                }
+                if let Some(filepath) = filepath {
+                    if debug {
+                        println!("Opening file: {}", filepath.to_str().unwrap());
+                    }
+                    let path = PathBuf::from(filepath);
+                    if let Err(error) = open::that(&path.to_str().unwrap()) {
+                        println!("Error opening file: {}", error);
+                    } else {
+                        if debug {
+                            println!("File opened successfully");
                         }
                     }
                 }

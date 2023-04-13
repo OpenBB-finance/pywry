@@ -1193,6 +1193,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
+name = "open"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "075c5203b3a2b698bc72c6c10b1f6263182135751d5013ea66e8a4b3d0562a43"
+dependencies = [
+ "pathdiff",
+]
+
+[[package]]
 name = "pango"
 version = "0.16.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1240,6 +1249,12 @@ dependencies = [
  "smallvec",
  "windows-sys",
 ]
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "percent-encoding"
@@ -1483,11 +1498,12 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "futures-util",
  "image",
  "mime_guess",
+ "open",
  "pyo3",
  "serde",
  "serde_json",
@@ -2413,9 +2429,9 @@ dependencies = [
 
 [[package]]
 name = "wry"
-version = "0.27.1"
+version = "0.27.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b958a84f347bf8ec2e882b3f767bdb3f7797e89867bb9d6f0d1fe3df26754fe9"
+checksum = "e8cf0dbfa7ccbd2e3832a3098b19d4b552360ea00a40b244a99caef46bffd84f"
 dependencies = [
  "base64",
  "block",
