@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import psutil
+import setproctitle
 from websockets.client import connect
 from websockets.exceptions import ConnectionClosedError
 
@@ -48,8 +49,11 @@ class PyWry:
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, daemon: bool = True, max_retries: int = 30):
+    def __init__(
+        self, daemon: bool = True, max_retries: int = 30, proc_name: str = "PyWry"
+    ):
         self.max_retries = max_retries
+        self.proc_name = proc_name
 
         self.outgoing: List[str] = []
         self.init_engine: List[str] = []
@@ -89,14 +93,21 @@ class PyWry:
         """Get a valid host that connects to the backend."""
         try_hosts = [
             "127.0.1.0",
+            "127.0.0.1",
             "0.0.0.0",
+            "host.docker.internal",
+            "172.17.0.1",
+        ]
+        hostnames = [
+            socket.gethostname(),
             "host.docker.internal",
             "localhost",
         ]
-        try:
-            try_hosts.append(socket.gethostbyname(socket.gethostname()))
-        except socket.gaierror:
-            pass
+        for hostname in hostnames:
+            try:
+                try_hosts.insert(0, socket.gethostbyname(hostname))
+            except socket.gaierror:
+                pass
 
         for host in try_hosts:
             try:
@@ -151,7 +162,9 @@ class PyWry:
         async with connect(
             f"ws://{host}:{port}",
             open_timeout=6,
-            timeout=1,
+            timeout=4,
+            ping_interval=None,
+            ping_timeout=None,
             ssl=None,
         ) as websocket:
             while True:
@@ -191,17 +204,14 @@ class PyWry:
 
             kwargs = {}
             if not hasattr(sys, "frozen"):
-                cmd = [sys.executable, "-m", "pywry.backend", "-start"]
+                cmd = [sys.executable, "-m", "pywry.backend", "--start"]
                 if self.debug:
-                    cmd.append("-debug")
+                    cmd.append("--debug")
                 kwargs = {"stderr": subprocess.PIPE}
             else:
                 # pylint: disable=E1101,W0212
                 pywrypath = (Path(sys._MEIPASS) / "OpenBBPlotsBackend").resolve()
-                if sys.platform == "win32":
-                    cmd = f"{pywrypath} -start{' -debug' if self.debug else ''}"
-                if sys.platform == "darwin":
-                    cmd = f"'{pywrypath}'"
+                cmd = f"{pywrypath} --start{' --debug' if self.debug else ''}"
 
                 kwargs = {
                     "stdout": subprocess.PIPE,
@@ -210,9 +220,12 @@ class PyWry:
                 }
                 self.shell = True
 
+            env = os.environ.copy()
+            env["PYWRY_PROCESS_NAME"] = self.proc_name
+
             self.runner = psutil.Popen(
                 cmd,
-                env=os.environ,
+                env=env,
                 shell=self.shell,
                 **kwargs,  # nosec
             )
@@ -222,6 +235,8 @@ class PyWry:
             with self.lock:
                 self._is_started.set()
                 self._is_closed.clear()
+
+            setproctitle.setproctitle(self.proc_name)
 
         except psutil.ZombieProcess:
             self.print_debug()
@@ -247,7 +262,7 @@ class PyWry:
             async with connect(
                 self.url,
                 open_timeout=6,
-                timeout=1,
+                timeout=4,
                 ping_interval=None,
                 ping_timeout=None,
                 ssl=None,
@@ -321,5 +336,7 @@ class PyWry:
         if not reset:
             for process in [p for p in self.procs if p.is_running()]:
                 for child in process.children(recursive=True):
-                    if child.is_running():
+                    try:
                         child.kill()
+                    except psutil.NoSuchProcess:
+                        pass

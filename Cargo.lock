@@ -1882,9 +1882,9 @@ dependencies = [
 
 [[package]]
 name = "tao"
-version = "0.18.3"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f2340617d383561b0ea25358b97ec2c2ba04db48c458ce71dd1b38d7fd09ac5"
+checksum = "389820c5cd5279ffdde7729baa9cf4db20e9936e11b1e171a20fb74babe3a6d3"
 dependencies = [
  "bitflags",
  "cairo-rs",
@@ -2429,9 +2429,9 @@ dependencies = [
 
 [[package]]
 name = "wry"
-version = "0.27.3"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8cf0dbfa7ccbd2e3832a3098b19d4b552360ea00a40b244a99caef46bffd84f"
+checksum = "073b88c1cb1be36d71b6e717237870541297ffb77d175c52a9abc1448d72e6cf"
 dependencies = [
  "base64",
  "block",

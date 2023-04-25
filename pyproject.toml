@@ -11,7 +11,7 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 
-dependencies = ['websockets>=11.0.1', 'psutil>=5.8.0,<5.9.4']
+dependencies = ['websockets>=11.0.1', 'psutil>=5.8.0,<5.9.4', "setproctitle"]
 
 [build-system]
 requires = [

@@ -1,6 +1,8 @@
 import os
 import sys
 
+import setproctitle
+
 from pywry import PyWry
 
 __all__ = ["start_backend"]
@@ -9,6 +11,7 @@ __all__ = ["start_backend"]
 def start_backend(debug: bool = False):
     """Start the backend."""
     try:
+        setproctitle.setproctitle(os.environ.get("PYWRY_PROCESS_NAME", "PyWry"))
         import ctypes  # pylint: disable=import-outside-toplevel
 
         # We need to set an app id so that the taskbar icon is correct on Windows
@@ -23,9 +26,9 @@ if __name__ == "__main__":
     sys_args = sys.argv[1:]
     sys_args = [arg.lower() for arg in sys_args]
 
-    if "-start" in sys_args or sys.platform == "darwin":
+    if "--start" in sys_args or sys.platform == "darwin":
         debug = (
-            "-debug" in sys_args
+            "--debug" in sys_args
             or os.environ.get("DEBUG_MODE", "False").lower() == "true"
         )  # noqa
         start_backend(debug)
