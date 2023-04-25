@@ -7,10 +7,14 @@ use image::ImageFormat;
 use mime_guess;
 use std::{
     collections::HashMap,
-    fs::{canonicalize, copy, create_dir_all, read, remove_file},
+    fs::{canonicalize, read},
     path::PathBuf,
     sync::mpsc::{Receiver, Sender},
 };
+
+#[cfg(not(target_os = "macos"))]
+use std::fs::{copy, create_dir_all, remove_file};
+
 use tokio::{runtime::Runtime, task};
 use urlencoding::decode as urldecode;
 use wry::{
@@ -33,9 +37,10 @@ enum UserEvent {
     BlobReceived(String, WindowId),
     BlobChunk(Option<String>),
     CloseWindow(WindowId),
+    DevTools(WindowId),
+    NewWindowCreated(WindowId),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
-    DevTools(WindowId),
 }
 
 fn get_icon(icon: &str) -> Option<Icon> {
@@ -108,8 +113,9 @@ fn create_new_window(
     let minimized = !to_show.export_image.is_empty();
     if minimized {
         window.set_visible(to_show.export_image.is_empty());
+        window.set_maximized(false);
     } else {
-        window.set_focus();
+        window.set_always_on_top(true);
     }
 
     let window_id = window.id();
@@ -230,9 +236,6 @@ fn create_new_window(
                                 }
                                 *default_path = path.clone();
                             }
-                            if !_is_export {
-                                println!("\nSaving to {:?}", default_path);
-                            }
                             true
                         }
                     }
@@ -259,6 +262,7 @@ fn create_new_window(
                     let proxy = proxy.clone();
                     move |_uri, filepath, success| {
                         let _filepath = filepath.unwrap_or_default();
+
                         #[cfg(not(target_os = "macos"))]
                         let _ = proxy.send_event(UserEvent::DownloadComplete(
                             Some(_filepath),
@@ -267,11 +271,10 @@ fn create_new_window(
                             export_image.clone(),
                             window_id,
                         ));
+
                         #[cfg(target_os = "macos")]
                         {
-                            if success && !_is_export {
-                                println!("File saved\n");
-                            } else if success && _is_export {
+                            if success && _is_export {
                                 let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                             }
                         }
@@ -301,7 +304,13 @@ fn create_new_window(
                 Err(error3) => return Err(error3.to_string()),
                 Ok(subitem) => match subitem.build() {
                     Err(error4) => return Err(error4.to_string()),
-                    Ok(sub2item) => sub2item,
+                    Ok(sub2item) => {
+                        if !minimized {
+                            let proxy = proxy.clone();
+                            let _ = proxy.send_event(UserEvent::NewWindowCreated(window_id));
+                        }
+                        sub2item
+                    }
                 },
             }
         }
@@ -338,6 +347,7 @@ pub fn start_wry(
             let chart = Showable::new(&response).unwrap_or_default();
             match create_new_window(chart, &event_loop, &proxy, debug) {
                 Err(error) => println!("Window Creation Error: {}", error),
+
                 Ok(new_window) => {
                     webviews.insert(new_window.0, new_window.1);
                 }
@@ -345,12 +355,23 @@ pub fn start_wry(
         }
 
         match event {
+            // UserEvent::NewWindowCreated
+            Event::UserEvent(UserEvent::NewWindowCreated(window_id)) => {
+                if debug {
+                    println!("New Window Created");
+                }
+                if let Some(webview) = webviews.get_mut(&window_id) {
+                    webview.window().set_always_on_top(false);
+                }
+            }
             // UserEvent::DownloadStarted
             #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if debug {
-                    println!("\nDownload Started: {}", uri);
-                    println!("Path: {}", path);
+                    if uri.len() < 200 {
+                        println!("\nDownload Started: {}", uri);
+                    }
+                    println!("\nPath: {}", path);
                 }
             }
             // UserEvent::DownloadComplete
@@ -410,9 +431,7 @@ pub fn start_wry(
                     if let Err(error) = copy(&file_path, &new_path) {
                         println!("\nError copying file: {}", error);
                     } else {
-                        if !is_export {
-                            println!("\nFile saved to: {}", new_path.display());
-                        } else {
+                        if is_export {
                             let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
                         }
                         if let Err(error) = remove_file(&file_path) {
@@ -503,7 +522,6 @@ pub fn start_wry(
                     if debug {
                         println!("New Window Created");
                     }
-
                 } else {
                     if debug {
                         println!("Invalid URI tried to open in new window: {}", uri);
