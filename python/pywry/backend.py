@@ -11,7 +11,8 @@ __all__ = ["start_backend"]
 def start_backend(debug: bool = False):
     """Start the backend."""
     try:
-        setproctitle.setproctitle(os.environ.get("PYWRY_PROCESS_NAME", "PyWry"))
+        proc_title = os.environ.get("PYWRY_PROCESS_NAME", "PyWry").replace(" ", "")
+        setproctitle.setproctitle(proc_title)
         import ctypes  # pylint: disable=import-outside-toplevel
 
         # We need to set an app id so that the taskbar icon is correct on Windows
