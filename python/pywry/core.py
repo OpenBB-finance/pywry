@@ -211,10 +211,7 @@ class PyWry:
             else:
                 # pylint: disable=E1101,W0212
                 pywrypath = (Path(sys._MEIPASS) / "OpenBBPlotsBackend").resolve()
-                if sys.platform == "win32":
-                    cmd = (
-                        f"OpenBBPlotsBackend --start{' --debug' if self.debug else ''}"
-                    )
+                cmd = f"OpenBBPlotsBackend --start{' --debug' if self.debug else ''}"
                 if sys.platform == "darwin":
                     cmd = f"'{pywrypath}'"
 
