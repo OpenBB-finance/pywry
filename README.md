@@ -1,6 +1,6 @@
 # PyWry Web Viewer
 
-Easily create HTML webviewers in python utilizing the [wry](https://github.com/tauri-apps/wry) library. Unlike many HTML viewers that exist for Python - Pywry allows you to run javacsript. PyWry is also a ~2mb footprint for Mac and Windows - Linux will require a few more libraries which are listed below. 
+Easily create HTML webviewers in python utilizing the [wry](https://github.com/tauri-apps/wry) library. Unlike many HTML viewers that exist for Python - Pywry allows you to run javacsript. PyWry is also a ~2mb footprint for Mac and Windows - Linux will require a few more libraries which are listed below.
 
 Please note: this library is currently in early alpha and is NOT ready for production use.
 
@@ -27,10 +27,30 @@ For development, you can install from source with the following steps:
 ## Usage
 
 ```python
->>> from pywry import PyWry
->>> handler = PyWry()
->>> handler.send_html("<h1>Welcome to plotting in PyWry</h1>")
->>> handler.start()
+import asyncio
+import sys
+
+from pywry import PyWry
+
+
+async def main_loop():
+    while True:
+        await asyncio.sleep(1)
+
+
+if __name__ == "__main__":
+    try:
+        handler = PyWry()
+        handler.send_html("<h1 style='color: red;'>Welcome to PyWry!</h1>")
+        handler.start()
+
+        # PyWry creates a new thread for the backend,
+        # so we need to run the main loop in the main thread.
+        # otherwise, the program will exit immediately.
+        handler.loop.run_until_complete(main_loop())
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected. Exiting...")
+        sys.exit(0)
 ```
 
 ### Arguments

@@ -11,6 +11,7 @@ python = "^3.10"
 streamlit = "^1.21.0"
 pywry = "^0.5.0"
 pandas = "^2.0.1"
+numpy = "^1.21.1"
 
 
 [build-system]
@@ -22,4 +23,5 @@ line-length = 122
 target-version = "py38"
 
 [tool.ruff.flake8-import-conventions.aliases]
+numpy = "np"
 pandas = "pd"
