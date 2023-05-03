@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pywry_streamlit_demo"
+version = "0.1.0"
+description = "A demo of pywry and streamlit"
+authors = ["teh_coderer <me@tehcoderer.com>"]
+packages = [{ include = "pywry_streamlit_demo", from = "." }]
+
+
+[tool.poetry.dependencies]
+python = "^3.10"
+streamlit = "^1.21.0"
+pywry = "^0.5.0"
+pandas = "^2.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 122
+target-version = "py38"
+
+[tool.ruff.flake8-import-conventions.aliases]
+pandas = "pd"
