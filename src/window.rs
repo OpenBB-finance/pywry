@@ -39,6 +39,7 @@ enum UserEvent {
     CloseWindow(WindowId),
     DevTools(WindowId),
     NewWindowCreated(WindowId),
+    OpenFile(Option<PathBuf>),
     #[cfg(not(target_os = "windows"))]
     NewWindow(String, Option<Icon>),
 }
@@ -190,7 +191,10 @@ fn create_new_window(
                         variable_name, variable_value, export_image
                     )
                 } else {
-                    format!("window.{} = {};", variable_name, variable_value)
+                    format!(
+                        "window.{} = {}; window.download_path = {:?};",
+                        variable_name, variable_value, download_path
+                    )
                 };
 
                 protocol.with_initialization_script(&initialization_script)
@@ -248,6 +252,10 @@ fn create_new_window(
                         }
                         "#EOF" => {
                             let _ = proxy.send_event(UserEvent::BlobChunk(None));
+                        }
+                        _ if string.starts_with("#OPEN:") => {
+                            let _ = proxy
+                                .send_event(UserEvent::OpenFile(Some(PathBuf::from(&string[6..]))));
                         }
                         "#DEVTOOLS" => {
                             let _ = proxy.send_event(UserEvent::DevTools(window_id));
@@ -484,6 +492,18 @@ pub fn start_wry(
                         println!("Opening DevTools");
                     }
                     let _ = webview.open_devtools();
+                }
+            }
+            // UserEvent::OpenFile
+            Event::UserEvent(UserEvent::OpenFile(filepath)) => {
+                if filepath.is_some() {
+                    let decoded = urldecode(&filepath.unwrap().to_str().unwrap())
+                        .expect("UTF-8")
+                        .to_string();
+                    let path = PathBuf::from(decoded);
+                    if let Err(error) = open::that(&path.to_str().unwrap()) {
+                        println!("Error opening file: {}", error);
+                    }
                 }
             }
             // WindowEvent::NewWindow
