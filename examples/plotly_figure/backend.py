@@ -30,14 +30,15 @@ class Backend(PyWry):
     ):
         super().__init__(daemon=daemon, max_retries=max_retries, proc_name=proc_name)
         self.isatty = sys.stdin.isatty() and current_process().name == "MainProcess"
-        self.plotly_html = (Path(__file__).parent / "plotly.html").resolve()
+        self.plotly_html = Path(__file__).parent / "plotly.html"
         atexit.register(self.close)
 
-    def get_plotly_html(self) -> str:
+    def get_plotly_html(self) -> Path:
         """Get the path to the Plotly HTML file."""
         if self.plotly_html.exists():
-            return str(self.plotly_html)
+            return self.plotly_html
 
+        self.max_retries = 0  # pylint: disable=W0201
         raise FileNotFoundError(f"Plotly HTML file not found at {self.plotly_html}.")
 
     def send_figure(self, fig: go.Figure):
@@ -53,15 +54,12 @@ class Backend(PyWry):
 
         json_data = json.loads(fig.to_json())
 
-        self.outgoing.append(
-            json.dumps(
-                {
-                    "html_path": self.get_plotly_html(),
-                    "json_data": json_data,
-                    "title": title,
-                }
-            )
+        outgoing = dict(
+            html_path=self.get_plotly_html(),
+            json_data=json_data,
+            title=title,
         )
+        self.send_outgoing(outgoing)
 
     def start(self, debug: bool = False):
         """Start the backend WindowManager process.
@@ -69,24 +67,11 @@ class Backend(PyWry):
         Parameters
         ----------
         debug : bool, optional
-            Whether to start in debug mode to see the output and enable dev tools in the
-            browser, by default False
+            Whether to start in debug mode to see the output and
+            enable dev tools in the browser, by default False
         """
         if self.isatty:
             super().start(debug)
-
-    def close(self, reset: bool = False):
-        """Close the backend.
-
-        Parameters
-        ----------
-        reset : bool, optional
-            Whether to reset the backend, by default False
-        """
-        if reset:
-            self.max_retries = 50  # pylint: disable=W0201
-
-        super().close(reset)
 
     async def check_backend(self):
         """Override to check if isatty."""
