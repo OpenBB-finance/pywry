@@ -12,7 +12,7 @@ async def main_loop():
 
 if __name__ == "__main__":
     try:
-        html_path = str((Path(__file__).parent / "example.html").resolve())
+        html_path = Path(__file__).parent / "example.html"
         handler = PyWry()
         handler.send_html(html_path=html_path, title="PyWry Demo")
         handler.start()
