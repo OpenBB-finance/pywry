@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.5.1"
+version = "0.5.2"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -11,7 +11,7 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 
-dependencies = ["websockets", "psutil>=5.8.0,<5.9.4", "setproctitle"]
+dependencies = ["setproctitle"]
 
 [build-system]
 requires = [
@@ -29,3 +29,18 @@ include = ['Cargo.toml', 'src/**/*']
 
 [project.optional-dependencies]
 dev = ["auditwheel", "wheel"]
+
+
+[tool.ruff]
+line-length = 122
+target-version = "py38"
+
+[tool.ruff.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+
+[tool.ruff.pylint]
+max-args=8
+max-branches=25
+max-returns=9
+max-statements=30
