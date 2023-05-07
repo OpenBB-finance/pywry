@@ -22,14 +22,14 @@
 
       var interval = setInterval(function () {
         // When sending a figure json to PyWry, it is stored in the window object
-        // under the name "plotly_figure". If it exists, we can plot it.
-        if (window.plotly_figure) {
+        // under the name "json_data". If it exists, we can plot it.
+        if (window.json_data) {
           clearInterval(interval);
 
           // We need to remove the height and width from the layout
           // for the plot to be responsive
-          delete window.plotly_figure.layout.height;
-          delete window.plotly_figure.layout.width;
+          delete window.json_data.layout.height;
+          delete window.json_data.layout.width;
 
           const CONFIG = {
             responsive: true,
@@ -37,7 +37,7 @@
             scrollZoom: true,
           };
           Plotly.setPlotConfig(CONFIG);
-          Plotly.newPlot("myDiv", window.plotly_figure);
+          Plotly.newPlot("myDiv", window.json_data);
         }
       }, 20);
     </script>
