@@ -1,5 +1,4 @@
 import atexit
-import json
 import sys
 from multiprocessing import current_process
 from typing import Optional
@@ -57,15 +56,13 @@ class Backend(PyWry):
             window.location.replace("{url}");
         </script>
         """
-        message = json.dumps(
-            {
-                "html_str": script,
-                "width": width,
-                "height": height,
-                "title": title,
-            }
+        outgoing = dict(
+            html_str=script,
+            width=width,
+            height=height,
+            title=title,
         )
-        self.outgoing.append(message)
+        self.send_outgoing(outgoing)
 
     def start(self, debug: bool = False):
         """Start the backend WindowManager process.
@@ -78,19 +75,6 @@ class Backend(PyWry):
         """
         if self.isatty:
             super().start(debug)
-
-    def close(self, reset: bool = False):
-        """Close the backend.
-
-        Parameters
-        ----------
-        reset : bool, optional
-            Whether to reset the backend, by default False
-        """
-        if reset:
-            self.max_retries = 50  # pylint: disable=W0201
-
-        super().close(reset)
 
     async def check_backend(self):
         """Override to check if isatty."""
