@@ -53,13 +53,67 @@ if __name__ == "__main__":
         sys.exit(0)
 ```
 
-### Arguments
+## JSON Keys
 
-| Argument | Description | Default |
+PyWry uses a JSON object to communicate between the python and rust backends and the javascript
+frontend. The following keys are available:
+
+| Key | Type | Description |
 | --- | --- | --- |
-| `html_str` | The HTML string to display in the webview | `None` |
-| `html_path` | The path to the HTML file to display in the webview | `None` |
-| `title` | The title of the webview | `PyWry` |
+| `html_str` | `str` | The HTML string to be rendered. |
+| `html_path` | `Union[str, Path]` | The path to the HTML file to be rendered. |
+| `title` | `str` | The title of the window. |
+| `icon` | `Union[str, Path]` | The path to `png` icon to be used for the window. |
+| `json_data` | `Union[str, dict]` | A JSON string or dictionary to be passed to the javascript frontend. (see below) |
+| `height` | `int` | The height of the window. |
+| `width` | `int` | The width of the window. |
+| `download_path` | `Union[str, Path]` | The path to the download directory. |
+
+## Javascript
+
+PyWry allows you to run javascript in the frontend. To do this, you can pass a dictionary
+of data to the `json_data` key in the `send_html` method. This dictionary will be converted
+to a JSON string and passed to the frontend. You can then access this data in the frontend
+by using the `window.json_data` object. For example:
+
+---------------------
+
+### Python
+
+```python
+from pathlib import Path
+# code from above ...
+
+# change send_html line to:
+        handler.send_html(
+            html_path=Path(__file__).parent / "index.html", json_data={"name": "PyWry"}
+        )
+```
+
+---------------------
+
+### HTML
+
+```html
+<html>
+    <head>
+        <script>
+            window.onload = () => {
+                // if you passed a JSON string, you will need to parse it first
+                if (typeof window.json_data === "string") {
+                    window.json_data = JSON.parse(window.json_data);
+                }
+                document.getElementById("name").innerHTML = window.json_data.name;
+            };
+        </script>
+    </head>
+    <body>
+        <h1 style='color: red;'>Hello, <span id="name"></span>!</h1>
+    </body>
+</html>
+```
+
+---------------------
 
 ## Platform-specific notes
 
@@ -95,10 +149,9 @@ WebKit is native to macOS, so no additional dependencies are needed.
 
 WebView2 provided by Microsoft Edge Chromium is used. So wry supports Windows 7, 8, 10 and 11.
 
+---------------------
 
-## Troubleshooting
-
-### Linux
+### Troubleshooting Linux
 
 #### `"/lib/x86_64-linux-gnu/libgio-2.0.so.0: undefined symbol: g_module_open_full"`
 
