@@ -1,7 +1,7 @@
 use crate::{
     constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML},
-    structs::Showable,
-    websocket::run_server,
+    pipe::run_listener,
+    structs::{DebugPrinter, Showable, UserEvent},
 };
 use image::ImageFormat;
 use mime_guess;
@@ -14,8 +14,6 @@ use std::{
 
 #[cfg(not(target_os = "macos"))]
 use std::fs::{copy, create_dir_all, remove_file};
-
-use tokio::{runtime::Runtime, task};
 use urlencoding::decode as urldecode;
 use wry::{
     application::{
@@ -28,22 +26,11 @@ use wry::{
     webview::{WebView, WebViewBuilder},
 };
 
-enum UserEvent {
-    #[cfg(not(target_os = "macos"))]
-    DownloadStarted(String, String),
-    #[cfg(not(target_os = "macos"))]
-    DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
-    #[cfg(not(target_os = "macos"))]
-    BlobReceived(String, WindowId),
-    BlobChunk(Option<String>),
-    CloseWindow(WindowId),
-    DevTools(WindowId),
-    NewWindowCreated(WindowId),
-    OpenFile(Option<PathBuf>),
-    #[cfg(not(target_os = "windows"))]
-    NewWindow(String, Option<Icon>),
-}
-
+/// Gets the icon from the path
+/// # Arguments
+/// * `icon` - The path to the icon
+/// # Returns
+/// * `Option<Icon>` - The icon or None
 fn get_icon(icon: &str) -> Option<Icon> {
     let icon_object = match read(icon) {
         Err(_) => None,
@@ -66,11 +53,19 @@ fn get_icon(icon: &str) -> Option<Icon> {
     icon_object
 }
 
+/// Creates a new window and returns the window id and webview
+/// # Arguments
+/// * `to_show` - The Showable struct that contains the information to show
+/// * `event_loop` - The event loop to create the window on
+/// * `proxy` - The event loop proxy to send events to
+/// * `debug` - The DebugPrinter struct to print debug messages
+/// # Returns
+/// * `Result<(WindowId, WebView), String>` - The window id and webview or an error message
 fn create_new_window(
     mut to_show: Showable,
     event_loop: &&EventLoopWindowTarget<UserEvent>,
     proxy: &EventLoopProxy<UserEvent>,
-    debug: bool,
+    debug: DebugPrinter,
 ) -> Result<(WindowId, WebView), String> {
     if to_show.html_path.is_empty() && to_show.html_str.is_empty() {
         to_show.html_str = String::from(
@@ -79,18 +74,18 @@ fn create_new_window(
     }
     let window_icon = to_show.icon.clone();
 
-    let content = if to_show.html_path.is_empty() {
-        to_show.html_str.as_bytes().to_vec()
-    } else {
-        to_show.html_path.as_bytes().to_vec()
+    let content = match to_show.html_path.is_empty() {
+        true => to_show.html_str.as_bytes().to_vec(),
+        false => to_show.html_path.as_bytes().to_vec(),
     };
 
-    let content = if debug {
-        let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
-        dev_tools_html.extend(content);
-        dev_tools_html
-    } else {
-        content
+    let content = match debug.active {
+        true => {
+            let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
+            dev_tools_html.extend(content);
+            dev_tools_html
+        }
+        false => content,
     };
 
     let mut pre_window = WindowBuilder::new()
@@ -113,19 +108,24 @@ fn create_new_window(
 
     let minimized = !to_show.export_image.is_empty();
     if minimized {
-        window.set_visible(to_show.export_image.is_empty());
+        window.set_visible(false);
         window.set_maximized(false);
     } else {
         window.set_always_on_top(true);
     }
 
     let window_id = window.id();
+    let background_color = match to_show.theme {
+        Theme::Light => (255, 255, 255, 255),
+        Theme::Dark => (0, 0, 0, 255),
+        _ => (255, 255, 255, 255),
+    };
 
     let webview = match WebViewBuilder::new(window) {
         Err(error2) => return Err(error2.to_string()),
         Ok(item) => {
             let protocol = item
-                .with_background_color((0, 0, 0, 255))
+                .with_background_color(background_color)
                 .with_hotkeys_zoom(true)
                 .with_custom_protocol("wry".into(), move |request| {
                     let path = request.uri().path();
@@ -136,18 +136,20 @@ fn create_new_window(
                     let content = if path == "/" {
                         content.into()
                     } else {
-                        let file_path = if clean_path.starts_with("file://") {
-                            let decoded = urldecode(&clean_path).expect("UTF-8").to_string();
-                            let path = PathBuf::from(&decoded);
-                            if ":" == &decoded[9..10] {
-                                path.strip_prefix("file://").unwrap().to_path_buf()
-                            } else {
-                                let path = PathBuf::from(&decoded[6..]);
-                                path.to_path_buf()
+                        let file_path = match clean_path.starts_with("file://") {
+                            true => {
+                                let decoded = urldecode(&clean_path).expect("UTF-8").to_string();
+                                let path = PathBuf::from(&decoded);
+                                if ":" == &decoded[9..10] {
+                                    path.strip_prefix("file://").unwrap().to_path_buf()
+                                } else {
+                                    let path = PathBuf::from(&decoded[6..]);
+                                    path.to_path_buf()
+                                }
                             }
-                        } else {
-                            PathBuf::from(clean_path)
+                            false => PathBuf::from(clean_path),
                         };
+
                         let file_path = file_path.to_str().unwrap();
 
                         mime = mime_guess::from_path(file_path);
@@ -172,34 +174,24 @@ fn create_new_window(
             let _is_export = !export_image.is_empty();
             let download_path = to_show.download_path.clone();
 
-            let init_view = if !to_show.data.is_none() || !to_show.figure.is_none() {
-                let variable_name = if !to_show.data.is_none() {
-                    "json_data"
-                } else {
-                    "plotly_figure"
-                };
+            let init_view = match !to_show.data.is_none() {
+                true => {
+                    let variable_value =
+                        serde_json::to_string(&to_show.data.unwrap()).unwrap_or_default();
+                    let initialization_script = match !export_image.is_empty() {
+                        true => format!(
+                            "window.json_data = {}; window.save_image = true; window.export_image = {:?};",
+                            variable_value, export_image
+                        ),
+                        false => format!(
+                            "window.json_data = {}; window.download_path = {:?};",
+                            variable_value, download_path
+                        ),
+                    };
 
-                let variable_value = if !to_show.data.is_none() {
-                    serde_json::to_string(&to_show.data.unwrap()).unwrap_or_default()
-                } else {
-                    serde_json::to_string(&to_show.figure.unwrap()).unwrap_or_default()
-                };
-
-                let initialization_script = if !export_image.is_empty() {
-                    format!(
-                        "window.{} = {}; window.save_image = true; window.export_image = '{}';",
-                        variable_name, variable_value, export_image
-                    )
-                } else {
-                    format!(
-                        "window.{} = {}; window.download_path = {:?};",
-                        variable_name, variable_value, download_path
-                    )
-                };
-
-                protocol.with_initialization_script(&initialization_script)
-            } else {
-                protocol
+                    protocol.with_initialization_script(&initialization_script)
+                }
+                false => protocol,
             };
 
             // we add a download handler, if export_image is set it takes precedence over download_path
@@ -308,7 +300,10 @@ fn create_new_window(
                     }
                 });
 
-            match init_view.with_devtools(debug).with_url("wry://localhost") {
+            match init_view
+                .with_devtools(debug.active)
+                .with_url("wry://localhost")
+            {
                 Err(error3) => return Err(error3.to_string()),
                 Ok(subitem) => match subitem.build() {
                     Err(error4) => return Err(error4.to_string()),
@@ -327,21 +322,30 @@ fn create_new_window(
     Ok((window_id, webview))
 }
 
+/// Starts Main Runtime Loop and creates a new window when a message is received from Python
+/// # Arguments
+/// * `sender` - The sender to send messages from Python to Wry Event Loop
+/// * `receiver` - The receiver Wry uses to receive messages from Python
+/// * `debug` - The DebugPrinter struct to print debug messages
+///
+/// # Returns
+/// * `Result<(), String>` - An error message or nothing
 pub fn start_wry(
-    port: u16,
     sender: Sender<String>,
     receiver: Receiver<String>,
-    debug: bool,
+    debug: DebugPrinter,
 ) -> Result<(), String> {
     let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
     let proxy = event_loop.create_proxy();
     let mut webviews = HashMap::new();
-    let rt = match Runtime::new() {
-        Err(_) => return Err("Could not start a runtime".to_string()),
-        Ok(item) => item,
-    };
 
-    rt.block_on(async { task::spawn(run_server(port, sender, debug)) });
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move { run_listener(sender.clone()).await.unwrap() })
+    });
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -349,9 +353,8 @@ pub fn start_wry(
         let response = receiver.try_recv().unwrap_or_default();
 
         if !response.is_empty() {
-            if debug {
-                println!("Received response");
-            }
+            debug.print("Received response");
+
             let chart = Showable::new(&response).unwrap_or_default();
             match create_new_window(chart, &event_loop, &proxy, debug) {
                 Err(error) => println!("Window Creation Error: {}", error),
@@ -365,9 +368,7 @@ pub fn start_wry(
         match event {
             // UserEvent::NewWindowCreated
             Event::UserEvent(UserEvent::NewWindowCreated(window_id)) => {
-                if debug {
-                    println!("New Window Created");
-                }
+                debug.print("New Window Created");
                 if let Some(webview) = webviews.get_mut(&window_id) {
                     webview.window().set_always_on_top(false);
                 }
@@ -375,12 +376,10 @@ pub fn start_wry(
             // UserEvent::DownloadStarted
             #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
-                if debug {
-                    if uri.len() < 200 {
-                        println!("\nDownload Started: {}", uri);
-                    }
-                    println!("\nPath: {}", path);
+                if uri.len() < 200 {
+                    debug.print(&format!("\nDownload Started: {}", uri));
                 }
+                debug.print(&format!("\nPath: {}", path));
             }
             // UserEvent::DownloadComplete
             #[cfg(not(target_os = "macos"))]
@@ -392,79 +391,82 @@ pub fn start_wry(
                 window_id,
             )) => {
                 let is_export = !export_image.is_empty();
-                if debug {
-                    println!("\nDownload Complete: {}", success);
-                }
+                debug.print(&format!("\nDownload Complete: {}", success));
+
                 if let Some(filepath) = filepath {
                     let decoded = urldecode(&filepath.to_str().unwrap())
                         .expect("UTF-8")
                         .to_string();
-                    let file_path = if decoded.starts_with("file://") {
-                        if ":" == &decoded[9..10] {
-                            let path = PathBuf::from(decoded);
-                            path.strip_prefix("file://").unwrap().to_path_buf()
-                        } else {
-                            let path = PathBuf::from(&decoded[6..]);
-                            path.to_path_buf()
+
+                    let file_path = match decoded.starts_with("file://") {
+                        true => {
+                            if ":" == &decoded[9..10] {
+                                let path = PathBuf::from(&decoded);
+                                path.strip_prefix("file://").unwrap().to_path_buf()
+                            } else {
+                                let path = PathBuf::from(&decoded[6..]);
+                                path.to_path_buf()
+                            }
                         }
-                    } else {
-                        PathBuf::from(decoded)
-                    };
-                    let new_path = if !download_path.is_empty() {
-                        if !export_image.is_empty() {
-                            let path = PathBuf::from(&export_image);
-                            path.to_path_buf()
-                        } else {
-                            let mut path = PathBuf::from(&download_path);
-                            path.push(file_path.file_name().unwrap());
-                            path.to_path_buf()
-                        }
-                    } else {
-                        file_path.to_path_buf()
+                        false => PathBuf::from(decoded),
                     };
 
-                    if debug {
-                        println!("\nOriginal Path: {}", file_path.to_str().unwrap());
-                        println!("New Path: {}", new_path.to_str().unwrap());
-                    }
+                    let new_path = match !download_path.is_empty() {
+                        true => match !export_image.is_empty() {
+                            true => {
+                                let path = PathBuf::from(&export_image);
+                                path.to_path_buf()
+                            }
+                            false => {
+                                let mut path = PathBuf::from(&download_path);
+                                path.push(file_path.file_name().unwrap());
+                                path.to_path_buf()
+                            }
+                        },
+                        false => file_path.to_path_buf(),
+                    };
+
+                    debug.print(&format!(
+                        "\nOriginal Path: {:?}",
+                        file_path.to_str().unwrap()
+                    ));
+                    debug.print(&format!("New Path: {}", new_path.to_str().unwrap()));
+
                     let dir = new_path.parent().unwrap();
-                    if !dir.exists() {
-                        if debug {
-                            println!("\nCreating directory: {}", dir.display());
+                    match !dir.exists() {
+                        true => {
+                            debug.print(&format!("\nCreating directory: {}", dir.display()));
+                            if let Err(error) = create_dir_all(dir) {
+                                println!("Error creating directory: {}", error);
+                            }
                         }
-                        if let Err(error) = create_dir_all(dir) {
-                            println!("Error creating directory: {}", error);
-                        }
+                        false => {}
                     }
-                    if let Err(error) = copy(&file_path, &new_path) {
-                        println!("\nError copying file: {}", error);
-                    } else {
-                        if is_export {
-                            let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
-                        }
-                        if let Err(error) = remove_file(&file_path) {
-                            println!("Error deleting file: {}", error);
+
+                    match copy(&file_path, &new_path) {
+                        Err(error) => println!("\nError copying file: {}", error),
+                        Ok(_) => {
+                            if is_export {
+                                let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
+                            }
+                            if let Err(error) = remove_file(&file_path) {
+                                println!("Error deleting file: {}", error);
+                            }
                         }
                     }
                 }
             }
             // UserEvent::CloseWindow
             Event::UserEvent(UserEvent::CloseWindow(window_id)) => {
-                if debug {
-                    println!("Close Window");
-                }
+                debug.print("Closing Window");
                 if let Some(_) = webviews.get(&window_id) {
-                    if debug {
-                        println!("Closing Webview");
-                    }
+                    debug.print("Closing Webview");
                     webviews.remove(&window_id);
                 }
             }
             // UserEvent::BlobChunk
             Event::UserEvent(UserEvent::BlobChunk(_)) => {
-                if debug {
-                    println!("Blob Chunk");
-                }
+                debug.print("Blob Chunk");
             }
             // WindowEvent::CloseRequested
             Event::WindowEvent {
@@ -472,25 +474,17 @@ pub fn start_wry(
                 window_id,
                 ..
             } => {
-                if debug {
-                    println!("Close Requested");
-                }
+                debug.print("Close Requested");
                 if let Some(_) = webviews.get(&window_id) {
-                    if debug {
-                        println!("Closing Webview");
-                    }
+                    debug.print("Closing Webview");
                     webviews.remove(&window_id);
                 }
             }
             // UserEvent::DevTools
             Event::UserEvent(UserEvent::DevTools(window_id)) => {
-                if debug {
-                    println!("DevTools");
-                }
+                debug.print("DevTools");
                 if let Some(webview) = webviews.get(&window_id) {
-                    if debug {
-                        println!("Opening DevTools");
-                    }
+                    debug.print("Opening DevTools");
                     let _ = webview.open_devtools();
                 }
             }
@@ -509,42 +503,39 @@ pub fn start_wry(
             // WindowEvent::NewWindow
             #[cfg(not(target_os = "windows"))]
             Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
-                if debug {
-                    println!("\nNew Window Requested: {}", uri);
-                }
-                if uri.starts_with("http://") || uri.starts_with("https://") {
-                    let pre_window = WindowBuilder::new()
-                        .with_title(uri.to_string())
-                        .with_window_icon(window_icon)
-                        .with_inner_size(LogicalSize::new(1300, 900))
-                        .with_resizable(true)
-                        .with_theme(Some(Theme::Dark));
+                debug.print(&format!("\nNew Window Requested: {}", uri));
+                match uri.starts_with("http://") || uri.starts_with("https://") {
+                    true => {
+                        let pre_window = WindowBuilder::new()
+                            .with_title(uri.to_string())
+                            .with_window_icon(window_icon)
+                            .with_inner_size(LogicalSize::new(1300, 900))
+                            .with_resizable(true)
+                            .with_theme(Some(Theme::Dark));
 
-                    let window = match pre_window.build(event_loop) {
-                        Err(error) => {
-                            println!("Window Creation Error: {}", error);
-                            return;
-                        }
-                        Ok(item) => item,
-                    };
+                        let window = match pre_window.build(event_loop) {
+                            Err(error) => {
+                                println!("Window Creation Error: {}", error);
+                                return;
+                            }
+                            Ok(item) => item,
+                        };
 
-                    let window_id = window.id();
+                        let window_id = window.id();
 
-                    let webview = WebViewBuilder::new(window)
-                        .unwrap()
-                        .with_url(&uri)
-                        .unwrap()
-                        .build()
-                        .unwrap();
+                        let webview = WebViewBuilder::new(window)
+                            .unwrap()
+                            .with_url(&uri)
+                            .unwrap()
+                            .build()
+                            .unwrap();
 
-                    webviews.insert(window_id, webview);
+                        webviews.insert(window_id, webview);
 
-                    if debug {
-                        println!("New Window Created");
+                        debug.print("New Window Created");
                     }
-                } else {
-                    if debug {
-                        println!("Invalid URI tried to open in new window: {}", uri);
+                    false => {
+                        debug.print(&format!("Invalid URI tried to open in new window: {}", uri));
                     }
                 }
             }
