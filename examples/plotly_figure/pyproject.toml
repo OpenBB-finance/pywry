@@ -8,7 +8,7 @@ packages = [{ include = "pywry_plotly_demo", from = "." }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pywry = "^0.5.0"
+pywry = "^0.5.2"
 plotly = "^5.3.1"
 numpy = "^1.21.1"
 
