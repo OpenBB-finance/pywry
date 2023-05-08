@@ -27,14 +27,14 @@ AsyncioException = (
 
 ACCEPTED_KEYS_TYPES = {
     "html_str": str,
-    "html_path": Union[str, Path],
+    "html_path": (str, Path),
     "title": str,
-    "icon": Union[str, Path],
-    "json_data": Union[dict, str],
+    "icon": (str, Path),
+    "json_data": (dict, str),
     "height": int,
     "width": int,
-    "download_path": Union[str, Path],
-    "export_image": Union[str, Path],
+    "download_path": (str, Path),
+    "export_image": (str, Path),
 }
 
 
@@ -180,9 +180,9 @@ class PyWry:
                         f"Expected {ACCEPTED_KEYS_TYPES[key]}, got {type(value)}"
                     )
                 if isinstance(value, Path):
-                    if not value.exists():
+                    if value.is_file() and not value.exists() and key != "export_image":
                         raise FileNotFoundError(value)
-                    value = value.resolve().as_posix()
+                    value = str(value.resolve())
             except Exception:
                 self.print_debug()
                 continue
