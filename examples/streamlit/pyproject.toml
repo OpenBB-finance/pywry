@@ -9,7 +9,7 @@ packages = [{ include = "pywry_streamlit_demo", from = "." }]
 [tool.poetry.dependencies]
 python = "^3.9.8"
 streamlit = "^1.21.0"
-pywry = "^0.5.2"
+pywry = "^0.5.3"
 pandas = "^2.0.1"
 numpy = "^1.21.1"
 
