@@ -374,6 +374,8 @@ class PyWry:
 
     def start(self, debug: bool = False):
         """Creates a new thread and runs the backend in it."""
+        if self._is_started.is_set():
+            return
         self.debug = debug
 
         thread = threading.Thread(target=self.run, daemon=self.daemon)
