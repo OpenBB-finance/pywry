@@ -204,12 +204,13 @@ fn create_new_window_headless(
     Ok((window_id, webview))
 }
 
-/// Starts Main Runtime Loop and creates a new headless window that will wait for messages from Python to update
-/// Plotly charts inside of the headless window. This is so only one window is created and updated to save
-/// the plotly chart to an image.
+/// Starts Main Runtime Loop and creates a new headless window on `WindowManager.start_headless()`
 ///
-/// The first message sent to the headless window will create the window and show the chart. Subsequent messages
-/// will update the chart and save the chart to an image.
+/// # Description
+/// This function creates a new event loop and event loop proxy. We then create a new headless window and
+/// wait for data to be sent from Python. Once we receive data we send it to the webview to render the plot.
+///
+/// We return a dictionary with the key `result` and base64 string encoded image.
 ///
 /// # Arguments
 /// * `sender` - The sender to send messages from Python to Wry Event Loop
