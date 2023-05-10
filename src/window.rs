@@ -1,13 +1,14 @@
 use crate::{
-    constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML},
+    constants::{BLOBINIT_SCRIPT, DEV_TOOLS_HTML, PYWRY_WINDOW_SCRIPT},
     pipe::run_listener,
-    structs::{DebugPrinter, Showable, UserEvent},
+    structs::{ConsolePrinter, Showable, UserEvent},
 };
 use image::ImageFormat;
 use mime_guess;
 use std::{
     collections::HashMap,
     fs::{canonicalize, read},
+    io::{self, Write},
     path::PathBuf,
     sync::mpsc::{Receiver, Sender},
 };
@@ -58,14 +59,14 @@ fn get_icon(icon: &str) -> Option<Icon> {
 /// * `to_show` - The Showable struct that contains the information to show
 /// * `event_loop` - The event loop to create the window on
 /// * `proxy` - The event loop proxy to send events to
-/// * `debug` - The DebugPrinter struct to print debug messages
+/// * `console` - The ConsolePrinter struct to print log messages to the console
 /// # Returns
 /// * `Result<(WindowId, WebView), String>` - The window id and webview or an error message
 fn create_new_window(
     mut to_show: Showable,
     event_loop: &&EventLoopWindowTarget<UserEvent>,
     proxy: &EventLoopProxy<UserEvent>,
-    debug: DebugPrinter,
+    console: ConsolePrinter,
 ) -> Result<(WindowId, WebView), String> {
     if to_show.html_path.is_empty() && to_show.html_str.is_empty() {
         to_show.html_str = String::from(
@@ -79,7 +80,7 @@ fn create_new_window(
         false => to_show.html_path.as_bytes().to_vec(),
     };
 
-    let content = match debug.active {
+    let content = match console.active {
         true => {
             let mut dev_tools_html = DEV_TOOLS_HTML.as_bytes().to_vec();
             dev_tools_html.extend(content);
@@ -180,7 +181,7 @@ fn create_new_window(
                         serde_json::to_string(&to_show.data.unwrap()).unwrap_or_default();
                     let initialization_script = match !export_image.is_empty() {
                         true => format!(
-                            "window.json_data = {}; window.save_image = true; window.export_image = {:?};",
+                            "window.json_data = {}; window.export_image = {:?};",
                             variable_value, export_image
                         ),
                         false => format!(
@@ -240,22 +241,40 @@ fn create_new_window(
                     let proxy = proxy.clone();
                     move |_, string| match string.as_str() {
                         _ if string.starts_with("data:") => {
-                            let _ = proxy.send_event(UserEvent::BlobChunk(Some(string)));
+                            proxy
+                                .send_event(UserEvent::BlobChunk(Some(string)))
+                                .unwrap_or_default();
                         }
                         "#EOF" => {
-                            let _ = proxy.send_event(UserEvent::BlobChunk(None));
+                            proxy
+                                .send_event(UserEvent::BlobChunk(None))
+                                .unwrap_or_default();
                         }
-                        _ if string.starts_with("#OPEN:") => {
-                            let _ = proxy
-                                .send_event(UserEvent::OpenFile(Some(PathBuf::from(&string[6..]))));
+                        _ if string.starts_with("#OPEN_FILE:") => {
+                            proxy
+                                .send_event(UserEvent::OpenFile(Some(PathBuf::from(&string[11..]))))
+                                .unwrap_or_default();
                         }
                         "#DEVTOOLS" => {
-                            let _ = proxy.send_event(UserEvent::DevTools(window_id));
+                            proxy
+                                .send_event(UserEvent::DevTools(window_id))
+                                .unwrap_or_default();
+                        }
+                        _ if string.starts_with("#SEND_IMAGE:") => {
+                            let data_url = string.replace("#SEND_IMAGE:", "").to_string();
+                            let image_data = data_url.replace("data:image/png;base64,", "");
+                            proxy
+                                .send_event(UserEvent::STDout(image_data))
+                                .unwrap_or_default();
+                            proxy
+                                .send_event(UserEvent::CloseWindow(window_id))
+                                .unwrap_or_default();
                         }
                         _ => {}
                     }
                 })
-                .with_initialization_script(BLOBINIT_SCRIPT);
+                .with_initialization_script(BLOBINIT_SCRIPT)
+                .with_initialization_script(PYWRY_WINDOW_SCRIPT);
 
             let init_view = init_view
                 .with_download_completed_handler({
@@ -264,18 +283,22 @@ fn create_new_window(
                         let _filepath = filepath.unwrap_or_default();
 
                         #[cfg(not(target_os = "macos"))]
-                        let _ = proxy.send_event(UserEvent::DownloadComplete(
-                            Some(_filepath),
-                            success,
-                            download_path.clone(),
-                            export_image.clone(),
-                            window_id,
-                        ));
+                        proxy
+                            .send_event(UserEvent::DownloadComplete(
+                                Some(_filepath),
+                                success,
+                                download_path.clone(),
+                                export_image.clone(),
+                                window_id,
+                            ))
+                            .unwrap_or_default();
 
                         #[cfg(target_os = "macos")]
                         {
                             if success && _is_export {
-                                let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
+                                proxy
+                                    .send_event(UserEvent::CloseWindow(window_id))
+                                    .unwrap_or_default();
                             }
                         }
                     }
@@ -301,7 +324,7 @@ fn create_new_window(
                 });
 
             match init_view
-                .with_devtools(debug.active)
+                .with_devtools(console.active)
                 .with_url("wry://localhost")
             {
                 Err(error3) => return Err(error3.to_string()),
@@ -310,7 +333,9 @@ fn create_new_window(
                     Ok(sub2item) => {
                         if !minimized {
                             let proxy = proxy.clone();
-                            let _ = proxy.send_event(UserEvent::NewWindowCreated(window_id));
+                            proxy
+                                .send_event(UserEvent::NewWindowCreated(window_id))
+                                .unwrap_or_default();
                         }
                         sub2item
                     }
@@ -326,14 +351,14 @@ fn create_new_window(
 /// # Arguments
 /// * `sender` - The sender to send messages from Python to Wry Event Loop
 /// * `receiver` - The receiver Wry uses to receive messages from Python
-/// * `debug` - The DebugPrinter struct to print debug messages
+/// * `console` - The ConsolePrinter struct to print log messages to the console
 ///
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
 pub fn start_wry(
     sender: Sender<String>,
     receiver: Receiver<String>,
-    debug: DebugPrinter,
+    console: ConsolePrinter,
 ) -> Result<(), String> {
     let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
     let proxy = event_loop.create_proxy();
@@ -353,12 +378,11 @@ pub fn start_wry(
         let response = receiver.try_recv().unwrap_or_default();
 
         if !response.is_empty() {
-            debug.print("Received response");
+            console.debug("Received response");
 
             let chart = Showable::new(&response).unwrap_or_default();
-            match create_new_window(chart, &event_loop, &proxy, debug) {
-                Err(error) => println!("Window Creation Error: {}", error),
-
+            match create_new_window(chart, &event_loop, &proxy, console) {
+                Err(error) => console.error(&format!("Error creating window: {}", error)),
                 Ok(new_window) => {
                     webviews.insert(new_window.0, new_window.1);
                 }
@@ -366,20 +390,34 @@ pub fn start_wry(
         }
 
         match event {
+            // UserEvent::STDout
+            Event::UserEvent(UserEvent::STDout(data_url)) => {
+                std::thread::spawn(move || {
+                    let stdout = io::stdout();
+                    let mut handle = stdout.lock();
+                    handle.write_all(data_url.as_bytes()).unwrap();
+                    handle.write_all(b"\n").unwrap();
+                    handle.flush().unwrap();
+                });
+            }
+
             // UserEvent::NewWindowCreated
             Event::UserEvent(UserEvent::NewWindowCreated(window_id)) => {
-                debug.print("New Window Created");
-                if let Some(webview) = webviews.get_mut(&window_id) {
-                    webview.window().set_always_on_top(false);
+                console.debug("New Window Created");
+                match webviews.get_mut(&window_id) {
+                    Some(webview) => {
+                        webview.window().set_always_on_top(false);
+                    }
+                    None => {}
                 }
             }
             // UserEvent::DownloadStarted
             #[cfg(not(target_os = "macos"))]
             Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
                 if uri.len() < 200 {
-                    debug.print(&format!("\nDownload Started: {}", uri));
+                    console.debug(&format!("\nDownload Started: {}", uri));
                 }
-                debug.print(&format!("\nPath: {}", path));
+                console.debug(&format!("\nPath: {}", path));
             }
             // UserEvent::DownloadComplete
             #[cfg(not(target_os = "macos"))]
@@ -391,7 +429,7 @@ pub fn start_wry(
                 window_id,
             )) => {
                 let is_export = !export_image.is_empty();
-                debug.print(&format!("\nDownload Complete: {}", success));
+                console.debug(&format!("\nDownload Complete: {}", success));
 
                 if let Some(filepath) = filepath {
                     let decoded = urldecode(&filepath.to_str().unwrap())
@@ -426,31 +464,33 @@ pub fn start_wry(
                         false => file_path.to_path_buf(),
                     };
 
-                    debug.print(&format!(
+                    console.debug(&format!(
                         "\nOriginal Path: {:?}",
                         file_path.to_str().unwrap()
                     ));
-                    debug.print(&format!("New Path: {}", new_path.to_str().unwrap()));
+                    console.debug(&format!("New Path: {}", new_path.to_str().unwrap()));
 
                     let dir = new_path.parent().unwrap();
                     match !dir.exists() {
                         true => {
-                            debug.print(&format!("\nCreating directory: {}", dir.display()));
+                            console.debug(&format!("\nCreating directory: {}", dir.display()));
                             if let Err(error) = create_dir_all(dir) {
-                                println!("Error creating directory: {}", error);
+                                console.error(&format!("Error creating directory: {}", error));
                             }
                         }
                         false => {}
                     }
 
                     match copy(&file_path, &new_path) {
-                        Err(error) => println!("\nError copying file: {}", error),
+                        Err(error) => console.error(&format!("\nError copying file: {}", error)),
                         Ok(_) => {
                             if is_export {
-                                let _ = proxy.send_event(UserEvent::CloseWindow(window_id));
+                                proxy
+                                    .send_event(UserEvent::CloseWindow(window_id))
+                                    .unwrap_or_default();
                             }
                             if let Err(error) = remove_file(&file_path) {
-                                println!("Error deleting file: {}", error);
+                                console.error(&format!("Error deleting file: {}", error));
                             }
                         }
                     }
@@ -458,15 +498,18 @@ pub fn start_wry(
             }
             // UserEvent::CloseWindow
             Event::UserEvent(UserEvent::CloseWindow(window_id)) => {
-                debug.print("Closing Window");
-                if let Some(_) = webviews.get(&window_id) {
-                    debug.print("Closing Webview");
-                    webviews.remove(&window_id);
+                console.debug("Closing Window");
+                match webviews.get(&window_id) {
+                    Some(_) => {
+                        console.debug("Closing Webview");
+                        webviews.remove(&window_id);
+                    }
+                    None => console.debug("Webview not found"),
                 }
             }
             // UserEvent::BlobChunk
             Event::UserEvent(UserEvent::BlobChunk(_)) => {
-                debug.print("Blob Chunk");
+                console.debug("Blob Chunk");
             }
             // WindowEvent::CloseRequested
             Event::WindowEvent {
@@ -474,18 +517,24 @@ pub fn start_wry(
                 window_id,
                 ..
             } => {
-                debug.print("Close Requested");
-                if let Some(_) = webviews.get(&window_id) {
-                    debug.print("Closing Webview");
-                    webviews.remove(&window_id);
+                console.debug("Close Requested");
+                match webviews.get(&window_id) {
+                    Some(_) => {
+                        console.debug("Closing Webview");
+                        webviews.remove(&window_id);
+                    }
+                    None => console.debug("Webview not found"),
                 }
             }
             // UserEvent::DevTools
             Event::UserEvent(UserEvent::DevTools(window_id)) => {
-                debug.print("DevTools");
-                if let Some(webview) = webviews.get(&window_id) {
-                    debug.print("Opening DevTools");
-                    let _ = webview.open_devtools();
+                console.debug("DevTools");
+                match webviews.get(&window_id) {
+                    Some(webview) => {
+                        console.debug("Opening DevTools");
+                        webview.open_devtools();
+                    }
+                    None => console.debug("Webview not found"),
                 }
             }
             // UserEvent::OpenFile
@@ -496,14 +545,14 @@ pub fn start_wry(
                         .to_string();
                     let path = PathBuf::from(decoded);
                     if let Err(error) = open::that(&path.to_str().unwrap()) {
-                        println!("Error opening file: {}", error);
+                        console.error(&format!("Error opening file: {}", error));
                     }
                 }
             }
             // WindowEvent::NewWindow
             #[cfg(not(target_os = "windows"))]
             Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
-                debug.print(&format!("\nNew Window Requested: {}", uri));
+                console.debug(&format!("\nNew Window Requested: {}", uri));
                 match uri.starts_with("http://") || uri.starts_with("https://") {
                     true => {
                         let pre_window = WindowBuilder::new()
@@ -515,7 +564,7 @@ pub fn start_wry(
 
                         let window = match pre_window.build(event_loop) {
                             Err(error) => {
-                                println!("Window Creation Error: {}", error);
+                                console.error(&format!("Window Creation Error: {}", error));
                                 return;
                             }
                             Ok(item) => item,
@@ -532,10 +581,10 @@ pub fn start_wry(
 
                         webviews.insert(window_id, webview);
 
-                        debug.print("New Window Created");
+                        console.debug("New Window Created");
                     }
                     false => {
-                        debug.print(&format!("Invalid URI tried to open in new window: {}", uri));
+                        console.debug(&format!("Invalid URI tried to open in new window: {}", uri));
                     }
                 }
             }

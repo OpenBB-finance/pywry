@@ -9,6 +9,7 @@ import threading
 import traceback
 from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
+from queue import Queue
 from typing import List, Optional, Union
 
 import setproctitle
@@ -50,6 +51,7 @@ class PyWry:
     listens to pipes and shows windows with provided html and json data.
     """
 
+    _bootargs: List[str] = []
     __version__ = pywry.__version__
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
@@ -68,6 +70,7 @@ class PyWry:
         self.proc_name: str = proc_name
 
         self.outgoing: List[str] = []
+        self.recv: Queue[dict] = Queue()
         self.init_engine: List[str] = []
         self.daemon: bool = daemon
         self.debug: bool = False
@@ -230,16 +233,14 @@ class PyWry:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            cmd = [sys.executable, "-m", "pywry.backend", "--start"]
-            if self.debug:
-                cmd.append("--debug")
+            cmd = [sys.executable, "-m", "pywry.backend", "--start"] + self._bootargs
 
             # for pyinstaller builds
             if hasattr(sys, "frozen"):
                 # pylint: disable=E1101,W0212
                 exec_name = os.environ.get("PYWRY_EXECUTABLE", "PyWry")
                 pywrypath = (Path(sys._MEIPASS) / exec_name).resolve()
-                cmd = f"{exec_name} --start{' --debug' if self.debug else ''}"
+                cmd = f"{exec_name} --start{' '.join(self._bootargs)}"
                 if sys.platform == "darwin":
                     cmd = f"'{pywrypath}'"
 
@@ -252,6 +253,7 @@ class PyWry:
             runner = asyncio.create_subprocess_exec(
                 *cmd,
                 env=env,
+                limit=2**64,
                 **kwargs,
             )
 
@@ -280,14 +282,35 @@ class PyWry:
         except Exception as proc_err:
             raise BackendFailedToStart("Could not start backend") from proc_err
 
+    def print_message(self, message: dict):
+        """Print messages from the backend."""
+        print_style = {
+            "error": "\033[91m",
+            "info": "\033[93m",
+            "debug": "\033[92m",
+        }
+        key = list(message.keys())[0]
+        print(f"{print_style[key]}{message[key]}\033[0m")
+
+    async def recv_message(self, data: str):
+        """Creates a new task to process messages from the stdout reader."""
+        try:
+            message: dict = json.loads(data)
+            if message.get("result", None):
+                self.recv.put(message, block=False)
+            else:
+                self.print_message(message)
+        except (json.JSONDecodeError, AttributeError):
+            print(data)
+
     async def stdout_reader(self):
         """Read stdout from the backend."""
+
         try:
             while self._is_started.is_set():
                 if data := (await self.runner.stdout.readline()).decode().strip():
-                    print(data)
-
-                await asyncio.sleep(0.1)
+                    asyncio.create_task(self.recv_message(data))
+                await asyncio.sleep(0.02)
 
         except Exception as proc_err:
             await self.exception_handler(proc_err)
@@ -303,7 +326,7 @@ class PyWry:
                     if data and not re.search(ignore_regex, data):
                         print(data)
 
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(2)
 
         except Exception as proc_err:
             await self.exception_handler(proc_err)
@@ -327,6 +350,7 @@ class PyWry:
                 # we send it to the backend and clear the list
                 for msg in self.init_engine:
                     self.runner.stdin.write(f"{msg}\n".encode())
+                    await self.runner.stdin.drain()
                 self.init_engine = []
 
             while self._is_started.is_set():
@@ -340,7 +364,7 @@ class PyWry:
 
                         self.init_engine = []
 
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
 
                 except (BrokenPipeError, ConnectionResetError) as runtime_err:
                     await self.exception_handler(runtime_err)
@@ -372,11 +396,24 @@ class PyWry:
         """Run the backend."""
         asyncio.run(self.run_backend())
 
-    def start(self, debug: bool = False):
-        """Creates a new thread and runs the backend in it."""
+    def start(self, debug: bool = False, headless: bool = False):
+        """Creates a new thread and runs the backend in it.
+
+        Parameters
+        ----------
+        debug : bool, optional
+            Whether to print debug messages, by default False
+        headless : bool, optional
+            Whether to run the backend in headless mode for plotly image exports,
+            by default False
+        """
         if self._is_started.is_set():
             return
         self.debug = debug
+
+        for arg, flag in zip([debug, headless], ["debug", "headless"]):
+            if arg:
+                self._bootargs.append(f"--{flag}")
 
         thread = threading.Thread(target=self.run, daemon=self.daemon)
         thread.start()
@@ -386,6 +423,8 @@ class PyWry:
                 self.thread.join()
             self.thread = thread
 
+        if headless:
+            self.loop.run_until_complete(asyncio.sleep(3))
         self.loop.run_until_complete(self.check_backend())
 
     def close(self, reset: bool = False):  # pylint: disable=unused-argument
