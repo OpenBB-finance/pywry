@@ -300,7 +300,7 @@ class PyWry:
                 self.recv.put(message, block=False)
             else:
                 self.print_message(message)
-        except (json.JSONDecodeError, AttributeError):
+        except (json.JSONDecodeError, Exception):
             print(data)
 
     async def stdout_reader(self):
