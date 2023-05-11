@@ -290,7 +290,7 @@ class PyWry:
             "debug": "\033[92m",
         }
         key = list(message.keys())[0]
-        print(f"{print_style[key]}{message[key]}\033[0m")
+        print(f"{print_style[key]}{message.get(key, message)}\033[0m")
 
     async def recv_message(self, data: str):
         """Creates a new task to process messages from the stdout reader."""
