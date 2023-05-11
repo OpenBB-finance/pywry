@@ -57,7 +57,7 @@ class Backend(PyWry):
         </script>
         """
         outgoing = dict(
-            html_str=script,
+            html=script,
             width=width,
             height=height,
             title=title,

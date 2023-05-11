@@ -62,14 +62,13 @@ frontend. The following keys are available:
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `html_str` | `str` | The HTML string to be rendered. |
-| `html_path` | `Union[str, Path]` | The path to the HTML file to be rendered. |
+| `html` | `Path | str` | The path to the HTML file to be loaded, or HTML string. |
 | `title` | `str` | The title of the window. |
-| `icon` | `Union[str, Path]` | The path to `png` icon to be used for the window. |
-| `json_data` | `Union[str, dict]` | A JSON string or dictionary to be passed to the javascript frontend. (see below) |
+| `icon` | `str | Path` | The path to `png` icon to be used for the window. |
+| `json_data` | `str | dict` | A JSON string or dictionary to be passed to the javascript frontend. (see below) |
 | `height` | `int` | The height of the window. |
 | `width` | `int` | The width of the window. |
-| `download_path` | `Union[str, Path]` | The path to the download directory. |
+| `download_path` | `str | Path` | The path to the download directory. |
 
 ## Javascript
 
@@ -88,7 +87,7 @@ from pathlib import Path
 
 # change send_html line to:
         handler.send_html(
-            html_path=Path(__file__).parent / "index.html", json_data={"name": "PyWry"}
+            html=Path(__file__).parent / "index.html", json_data={"name": "PyWry"}
         )
 ```
 
