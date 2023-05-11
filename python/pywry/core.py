@@ -326,7 +326,7 @@ class PyWry:
                     if data and not re.search(ignore_regex, data):
                         print(data)
 
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
 
         except Exception as proc_err:
             await self.exception_handler(proc_err)
