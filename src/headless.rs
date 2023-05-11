@@ -116,6 +116,7 @@ fn create_new_window_headless(
                 window_id,
                 "".to_string(),
                 to_show.export_image,
+                "".to_string().as_str(),
                 Some(true),
             );
             match init_view

@@ -146,6 +146,7 @@ fn create_new_window(
                 window_id,
                 download_path,
                 export_image,
+                &window_icon,
                 Some(false),
             );
 

@@ -1,6 +1,11 @@
 use crate::{constants, structs::UserEvent};
 use std::path::PathBuf;
 
+#[cfg(not(target_os = "windows"))]
+use wry::application::window::Icon;
+#[cfg(not(target_os = "windows"))]
+use crate::utils::get_icon;
+
 use wry::{
     application::{event_loop::EventLoopProxy, window::WindowId},
     webview::WebViewBuilder,
@@ -12,6 +17,7 @@ pub fn add_handlers<'a>(
     window_id: WindowId,
     download_path: String,
     export_image: String,
+    window_icon: &str,
     is_headless: Option<bool>,
 ) -> WebViewBuilder<'a> {
     let _is_export = !export_image.is_empty();
