@@ -4,7 +4,7 @@ use tokio::io::{self, AsyncBufReadExt};
 pub async fn send_message(sender: Sender<String>, message: String) {
     let trimmed_line = message.trim();
     if !trimmed_line.is_empty() && trimmed_line.starts_with('{') && trimmed_line.ends_with('}') {
-        let _ = sender.send(message);
+        sender.send(message).unwrap();
     }
 }
 

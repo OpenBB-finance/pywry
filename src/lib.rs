@@ -4,11 +4,14 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::sync::mpsc;
-use window::start_wry;
 
 pub mod constants;
+pub mod events;
+pub mod handlers;
+pub mod headless;
 pub mod pipe;
 pub mod structs;
+pub mod utils;
 pub mod window;
 
 #[pyclass]
@@ -25,10 +28,22 @@ impl WindowManager {
     }
     fn start(&self, debug: bool) -> PyResult<()> {
         let (sender, receiver) = mpsc::channel();
-        let debug_printer = structs::DebugPrinter::new(debug);
-        match start_wry(sender, receiver, debug_printer) {
+        let console_printer = structs::ConsolePrinter::new(debug);
+        match window::start_wry(sender, receiver, console_printer) {
             Err(error) => {
                 let error_str = format!("Error starting wry server: {}", error);
+                Err(PyValueError::new_err(error_str))
+            }
+            Ok(_) => Ok(()),
+        }
+    }
+
+    fn start_headless(&self, debug: bool) -> PyResult<()> {
+        let (sender, receiver) = mpsc::channel();
+        let console_printer = structs::ConsolePrinter::new(debug);
+        match headless::start_headless(sender, receiver, console_printer) {
+            Err(error) => {
+                let error_str = format!("Error starting headless server: {}", error);
                 Err(PyValueError::new_err(error_str))
             }
             Ok(_) => Ok(()),
