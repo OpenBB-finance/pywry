@@ -240,6 +240,15 @@ fn create_new_window(
                 .with_ipc_handler({
                     let proxy = proxy.clone();
                     move |_, string| match string.as_str() {
+                        _ if string.starts_with("#PYWRY_RESULT:") => {
+                            let result = string.replace("#PYWRY_RESULT:", "").to_string();
+                            proxy
+                                .send_event(UserEvent::STDout(result))
+                                .unwrap_or_default();
+                            proxy
+                                .send_event(UserEvent::CloseWindow(window_id))
+                                .unwrap_or_default();
+                        }
                         _ if string.starts_with("data:") => {
                             proxy
                                 .send_event(UserEvent::BlobChunk(Some(string)))
@@ -258,16 +267,6 @@ fn create_new_window(
                         "#DEVTOOLS" => {
                             proxy
                                 .send_event(UserEvent::DevTools(window_id))
-                                .unwrap_or_default();
-                        }
-                        _ if string.starts_with("#SEND_IMAGE:") => {
-                            let data_url = string.replace("#SEND_IMAGE:", "").to_string();
-                            let image_data = data_url.replace("data:image/png;base64,", "");
-                            proxy
-                                .send_event(UserEvent::STDout(image_data))
-                                .unwrap_or_default();
-                            proxy
-                                .send_event(UserEvent::CloseWindow(window_id))
                                 .unwrap_or_default();
                         }
                         _ => {}
@@ -391,16 +390,19 @@ pub fn start_wry(
 
         match event {
             // UserEvent::STDout
-            Event::UserEvent(UserEvent::STDout(data_url)) => {
+            Event::UserEvent(UserEvent::STDout(result)) => {
                 std::thread::spawn(move || {
-                    let stdout = io::stdout();
-                    let mut handle = stdout.lock();
-                    handle.write_all(data_url.as_bytes()).unwrap();
-                    handle.write_all(b"\n").unwrap();
-                    handle.flush().unwrap();
+                    let stdout: io::Stdout = io::stdout();
+                    let mut handler = stdout.lock();
+                    handler
+                        .write_all(
+                            format!("{}\n", serde_json::json!({ "result": result }).to_string())
+                                .as_bytes(),
+                        )
+                        .unwrap();
+                    handler.flush().unwrap();
                 });
             }
-
             // UserEvent::NewWindowCreated
             Event::UserEvent(UserEvent::NewWindowCreated(window_id)) => {
                 console.debug("New Window Created");

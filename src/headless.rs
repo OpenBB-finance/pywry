@@ -155,10 +155,10 @@ fn create_new_window_headless(
                 .with_ipc_handler({
                     let proxy = proxy.clone();
                     move |_, string| match string.as_str() {
-                        _ if string.starts_with("#SEND_IMAGE:") => {
-                            let data_url = string.replace("#SEND_IMAGE:", "").to_string();
+                        _ if string.starts_with("#PYWRY_RESULT:") => {
+                            let result = string.replace("#PYWRY_RESULT:", "").to_string();
                             proxy
-                                .send_event(UserEvent::STDout(data_url))
+                                .send_event(UserEvent::STDout(result))
                                 .unwrap_or_default();
                         }
                         _ if string.starts_with("data:") => {
@@ -265,17 +265,20 @@ pub fn start_headless(
 
         match event {
             // UserEvent::STDout
-            Event::UserEvent(UserEvent::STDout(data_url)) => {
+            Event::UserEvent(UserEvent::STDout(result)) => {
                 std::thread::spawn(move || {
                     let stdout: io::Stdout = io::stdout();
                     let mut handler = stdout.lock();
-                    let response = serde_json::json!({ "result": data_url }).to_string();
                     handler
-                        .write_all(format!("{}\n", response).as_bytes())
+                        .write_all(
+                            format!("{}\n", serde_json::json!({ "result": result }).to_string())
+                                .as_bytes(),
+                        )
                         .unwrap();
                     handler.flush().unwrap();
                 });
             }
+            // UserEvent::NewPlot
             Event::UserEvent(UserEvent::NewPlot(data, _windowid)) => {
                 let _proxy = proxy.clone();
                 let plot_data = PlotData::to_json(&data).to_string();

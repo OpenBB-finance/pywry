@@ -86,8 +86,8 @@ pub const DEV_TOOLS_HTML: &str = "
 /// communication between the HTML and the Rust backend.
 pub const PYWRY_WINDOW_SCRIPT: &str = "
   window.pywry = {
-    send_image: function (dataUrl) {
-      window.ipc.postMessage(`#SEND_IMAGE:${dataUrl}`);
+    result: function (result) {
+      window.ipc.postMessage(`#PYWRY_RESULT:${result}`);
     },
     open_file: function (file_path) {
       window.ipc.postMessage(`#OPEN_FILE:${file_path}`);
@@ -141,16 +141,16 @@ function plotly_render(info) {
     opts.figure = { ...figure, config: config };
     opts.imgOpts = imgOpts;
   } catch (err) {
-    console.error(err);
+    return window.pywry.result(err);
   }
   try {
     Plotly.toImage(opts.figure, opts.imgOpts).then(function (
       imageData
     ) {
-      return window.pywry.send_image(imageData);
+      return window.pywry.result(imageData);
     });
   } catch (err_1) {
-    console.error(err_1);
+    return window.pywry.result(err_1);
   }
   return true;
 }
