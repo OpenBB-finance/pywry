@@ -2,8 +2,6 @@ use crate::{constants, structs::UserEvent};
 use std::path::PathBuf;
 
 #[cfg(not(target_os = "windows"))]
-use wry::application::window::Icon;
-#[cfg(not(target_os = "windows"))]
 use crate::utils::get_icon;
 
 use wry::{
@@ -130,12 +128,13 @@ pub fn add_handlers<'a>(
             }
         })
         .with_new_window_req_handler({
+            let _window_icon = window_icon.to_string();
             #[cfg(not(target_os = "windows"))]
             {
                 let proxy = proxy.clone();
                 move |uri: String| {
                     let submitted = proxy
-                        .send_event(UserEvent::NewWindow(uri.clone(), get_icon(&window_icon)))
+                        .send_event(UserEvent::NewWindow(uri.clone(), get_icon(&_window_icon)))
                         .is_ok();
                     submitted
                 }

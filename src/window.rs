@@ -216,6 +216,6 @@ pub fn start_wry(
             };
         }
 
-        handle_events(event, &mut webviews, &proxy, console.clone());
+        handle_events(event, &mut webviews, &proxy, console.clone(), event_loop);
     });
 }

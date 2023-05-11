@@ -15,7 +15,7 @@ use urlencoding::decode as urldecode;
 use wry::{
     application::{
         event::{Event, WindowEvent},
-        event_loop::EventLoopProxy,
+        event_loop::{EventLoopProxy, EventLoopWindowTarget},
         window::WindowId,
     },
     webview::WebView,
@@ -23,9 +23,11 @@ use wry::{
 
 #[cfg(not(target_os = "windows"))]
 use wry::{
-    application::window::{Theme, WindowBuilder},
-    dpi::LogicalSize,
-    Icon,
+    application::{
+        dpi::LogicalSize,
+        window::{Theme, WindowBuilder},
+    },
+    webview::WebViewBuilder,
 };
 
 pub fn handle_events(
@@ -33,6 +35,7 @@ pub fn handle_events(
     webviews: &mut HashMap<WindowId, WebView>,
     proxy: &EventLoopProxy<UserEvent>,
     console: ConsolePrinter,
+    _event_loop: &EventLoopWindowTarget<UserEvent>,
 ) {
     match event {
         // UserEvent::STDout
@@ -208,7 +211,7 @@ pub fn handle_events(
                         .with_resizable(true)
                         .with_theme(Some(Theme::Dark));
 
-                    let window = match pre_window.build(event_loop) {
+                    let window = match pre_window.build(_event_loop) {
                         Err(error) => {
                             console.error(&format!("Window Creation Error: {}", error));
                             return;

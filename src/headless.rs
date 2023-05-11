@@ -194,6 +194,6 @@ pub fn start_headless(
                 .unwrap_or_default();
         }
 
-        handle_events(event, &mut webviews, &proxy, console.clone());
+        handle_events(event, &mut webviews, &proxy, console.clone(), event_loop);
     });
 }
