@@ -289,17 +289,20 @@ class PyWry:
             "info": "\033[93m",
             "debug": "\033[92m",
         }
-        key = list(message.keys())[0]
-        print(f"{print_style[key]}{message.get(key, message)}\033[0m")
+        if (
+            key := re.search(r"error|info|debug", ",".join(message.keys()))
+        ) is not None:
+            return print(f"{print_style[key.group()]}{message[key.group()]}")
+
+        print(message)
 
     async def recv_message(self, data: str):
         """Creates a new task to process messages from the stdout reader."""
         try:
             message: dict = json.loads(data)
             if message.get("result", None):
-                self.recv.put(message, block=False)
-            else:
-                self.print_message(message)
+                return self.recv.put(message, block=False)
+            self.print_message(message)
         except (json.JSONDecodeError, AttributeError):
             print(data)
 

@@ -105,8 +105,7 @@ pub enum UserEvent {
 }
 
 pub struct Showable {
-    pub html_path: String,
-    pub html_str: String,
+    pub content: String,
     pub title: String,
     pub height: Option<u32>,
     pub width: Option<u32>,
@@ -124,7 +123,7 @@ impl Showable {
             Ok(item) => item,
         };
 
-        let mut html_path = json["html_path"].as_str().unwrap_or_default().to_string();
+        let html_path = json["html_path"].as_str().unwrap_or_default().to_string();
         let html_str = json["html_str"].as_str().unwrap_or_default().to_string();
         let json_data: Value = json["json_data"].clone();
         let icon = json["icon"].as_str().unwrap_or_default().to_string();
@@ -143,23 +142,33 @@ impl Showable {
         let mut theme = Theme::Light;
 
         if !json_data.is_null() {
+            theme = match json_data["theme"].as_str().unwrap_or_default() {
+                "dark" => Theme::Dark,
+                "light" => Theme::Light,
+                _ => Theme::Light,
+            };
             if json_data["layout"].is_object() {
                 let raw_width = json_data["layout"]["width"].as_u64().unwrap_or(800);
                 let raw_height = json_data["layout"]["height"].as_u64().unwrap_or(600);
                 width = Some(u32::try_from(raw_width).unwrap_or(800));
                 height = Some(u32::try_from(raw_height).unwrap_or(600));
-                theme = Theme::Dark;
             }
             data = Some(json_data);
         }
 
-        if !html_path.is_empty() {
-            html_path = read_to_string(html_path).unwrap_or_default();
+        let mut content = match html_path.is_empty() {
+            true => html_str,
+            false => read_to_string(html_path).unwrap_or_default(),
+        };
+
+        if content.is_empty() {
+            content = String::from(
+                "<h1 style='color:red'>No html content to show, please provide a html_path or a html_str key</h1>",
+            );
         }
 
         Some(Self {
-            html_path,
-            html_str,
+            content,
             title,
             height,
             width,
@@ -175,9 +184,7 @@ impl Showable {
 impl Default for Showable {
     fn default() -> Self {
         Self {
-            html_path: "".to_string(),
-            html_str: "<h1 style='color:red'>There was an error displaying the HTML</h1>"
-                .to_string(),
+            content: "".to_string(),
             title: "Error Creating Showable Object".to_string(),
             height: None,
             width: None,

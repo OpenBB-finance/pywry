@@ -6,9 +6,12 @@ use pyo3::prelude::*;
 use std::sync::mpsc;
 
 pub mod constants;
+pub mod events;
+pub mod handlers;
 pub mod headless;
 pub mod pipe;
 pub mod structs;
+pub mod utils;
 pub mod window;
 
 #[pyclass]

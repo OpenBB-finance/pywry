@@ -1,22 +1,20 @@
 use crate::{
     constants,
+    events::handle_events,
+    handlers::add_handlers,
     pipe::run_listener,
-    structs::{ConsolePrinter, PlotData, ShowableHeadless, UserEvent},
+    structs::{ConsolePrinter, ShowableHeadless, UserEvent},
+    utils::decode_path,
 };
 use std::{
     collections::HashMap,
     fs::{canonicalize, read},
-    io::{self, Write},
-    path::PathBuf,
     sync::mpsc::{Receiver, Sender},
 };
 
-#[cfg(not(target_os = "macos"))]
-use urlencoding::decode as urldecode;
 use wry::{
     application::{
         dpi::LogicalSize,
-        event::{Event, WindowEvent},
         event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
         window::{WindowBuilder, WindowId},
     },
@@ -76,25 +74,9 @@ fn create_new_window_headless(
                         let content = if path == "/" {
                             content.into()
                         } else {
-                            let file_path = match clean_path.starts_with("file://") {
-                                true => {
-                                    let decoded =
-                                        urldecode(&clean_path).expect("UTF-8").to_string();
-                                    let path = PathBuf::from(&decoded);
-                                    if ":" == &decoded[9..10] {
-                                        path.strip_prefix("file://").unwrap().to_path_buf()
-                                    } else {
-                                        let path = PathBuf::from(&decoded[6..]);
-                                        path.to_path_buf()
-                                    }
-                                }
-                                false => PathBuf::from(clean_path),
-                            };
-
-                            let file_path = file_path.to_str().unwrap();
-
-                            mime = mime_guess::from_path(file_path);
-                            match read(canonicalize(file_path).unwrap_or_default()) {
+                            let decoded = decode_path(clean_path);
+                            mime = mime_guess::from_path(decoded.clone());
+                            match read(canonicalize(decoded).unwrap_or_default()) {
                                 Err(_) => content.into(),
                                 Ok(bytes) => bytes.into(),
                             }
@@ -128,66 +110,14 @@ fn create_new_window_headless(
                 false => protocol,
             };
 
-            // we add a download handler, if export_image is set it takes precedence over download_path
-            let init_view = init_view
-                .with_download_started_handler({
-                    let _proxy = proxy.clone();
-                    move |_uri: String, default_path| {
-                        #[cfg(not(target_os = "macos"))]
-                        {
-                            if _uri.starts_with("blob:") {
-                                let submitted = _proxy
-                                    .send_event(UserEvent::BlobReceived(dbg!(_uri), window_id))
-                                    .is_ok();
-                                return submitted;
-                            }
-                            let submitted = _proxy
-                                .send_event(UserEvent::DownloadStarted(
-                                    _uri.clone(),
-                                    default_path.display().to_string(),
-                                ))
-                                .is_ok();
-
-                            return submitted;
-                        }
-                    }
-                })
-                .with_ipc_handler({
-                    let proxy = proxy.clone();
-                    move |_, string| match string.as_str() {
-                        _ if string.starts_with("#PYWRY_RESULT:") => {
-                            let result = string.replace("#PYWRY_RESULT:", "").to_string();
-                            proxy
-                                .send_event(UserEvent::STDout(result))
-                                .unwrap_or_default();
-                        }
-                        _ if string.starts_with("data:") => {
-                            proxy
-                                .send_event(UserEvent::BlobChunk(Some(string)))
-                                .unwrap_or_default();
-                        }
-                        "#EOF" => {
-                            proxy
-                                .send_event(UserEvent::BlobChunk(None))
-                                .unwrap_or_default();
-                        }
-                        _ if string.starts_with("#OPEN_FILE:") => {
-                            proxy
-                                .send_event(UserEvent::OpenFile(Some(PathBuf::from(&string[11..]))))
-                                .unwrap_or_default();
-                        }
-                        "#DEVTOOLS" => {
-                            proxy
-                                .send_event(UserEvent::DevTools(window_id))
-                                .unwrap_or_default();
-                        }
-                        _ => {}
-                    }
-                })
-                .with_initialization_script(constants::BLOBINIT_SCRIPT)
-                .with_initialization_script(constants::PYWRY_WINDOW_SCRIPT)
-                .with_initialization_script(constants::PLOTLY_RENDER_JS);
-
+            let init_view = add_handlers(
+                init_view,
+                proxy,
+                window_id,
+                "".to_string(),
+                to_show.export_image,
+                Some(true),
+            );
             match init_view
                 .with_devtools(console.active)
                 .with_url("wry://localhost")
@@ -263,88 +193,6 @@ pub fn start_headless(
                 .unwrap_or_default();
         }
 
-        match event {
-            // UserEvent::STDout
-            Event::UserEvent(UserEvent::STDout(result)) => {
-                std::thread::spawn(move || {
-                    let stdout: io::Stdout = io::stdout();
-                    let mut handler = stdout.lock();
-                    handler
-                        .write_all(
-                            format!("{}\n", serde_json::json!({ "result": result }).to_string())
-                                .as_bytes(),
-                        )
-                        .unwrap();
-                    handler.flush().unwrap();
-                });
-            }
-            // UserEvent::NewPlot
-            Event::UserEvent(UserEvent::NewPlot(data, _windowid)) => {
-                let _proxy = proxy.clone();
-                let plot_data = PlotData::to_json(&data).to_string();
-
-                webviews
-                    .iter_mut()
-                    .next()
-                    .unwrap()
-                    .1
-                    .evaluate_script(&format!("plotly_render({});", plot_data))
-                    .unwrap();
-            }
-            // UserEvent::CloseWindow
-            Event::UserEvent(UserEvent::CloseWindow(window_id)) => {
-                console.debug("Closing Window");
-                match webviews.get(&window_id) {
-                    Some(_) => {
-                        console.debug("Closing Webview");
-                        webviews.remove(&window_id);
-                    }
-                    None => console.debug("Webview not found"),
-                }
-            }
-            // UserEvent::BlobChunk
-            Event::UserEvent(UserEvent::BlobChunk(_)) => {
-                console.debug("Blob Chunk");
-            }
-            // WindowEvent::CloseRequested
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-                ..
-            } => {
-                console.debug("Close Requested");
-                match webviews.get(&window_id) {
-                    Some(_) => {
-                        console.debug("Closing Webview");
-                        webviews.remove(&window_id);
-                    }
-                    None => console.debug("Webview not found"),
-                }
-            }
-            // UserEvent::DevTools
-            Event::UserEvent(UserEvent::DevTools(window_id)) => {
-                console.debug("DevTools");
-                match webviews.get(&window_id) {
-                    Some(webview) => {
-                        console.debug("Opening DevTools");
-                        webview.open_devtools();
-                    }
-                    None => console.debug("Webview not found"),
-                }
-            }
-            // UserEvent::OpenFile
-            Event::UserEvent(UserEvent::OpenFile(filepath)) => {
-                if filepath.is_some() {
-                    let decoded = urldecode(&filepath.unwrap().to_str().unwrap())
-                        .expect("UTF-8")
-                        .to_string();
-                    let path = PathBuf::from(decoded);
-                    if let Err(error) = open::that(&path.to_str().unwrap()) {
-                        console.error(&format!("Error opening file: {}", error));
-                    }
-                }
-            }
-            _ => {}
-        }
+        handle_events(event, &mut webviews, &proxy, console.clone());
     });
 }
