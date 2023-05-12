@@ -31,10 +31,8 @@ use wry::{
 };
 
 pub fn handle_events(
-	event: Event<UserEvent>,
-	webviews: &mut HashMap<WindowId, WebView>,
-	proxy: &EventLoopProxy<UserEvent>,
-	console: ConsolePrinter,
+	event: Event<UserEvent>, webviews: &mut HashMap<WindowId, WebView>,
+	proxy: &EventLoopProxy<UserEvent>, console: ConsolePrinter,
 	_event_loop: &EventLoopWindowTarget<UserEvent>,
 ) {
 	match event {
@@ -95,52 +93,46 @@ pub fn handle_events(
 			let is_export = !export_image.is_empty();
 			console.debug(&format!("\nDownload Complete: {}", success));
 
-			if let Some(filepath) = filepath {
-				let file_path = decode_path(&filepath.to_str().unwrap());
+			let decoded = decode_path(&filepath.unwrap().to_str().unwrap());
 
-				let new_path = match !download_path.is_empty() {
-					true => match !export_image.is_empty() {
-						true => {
-							let path = PathBuf::from(&export_image);
-							path.to_path_buf()
-						}
-						false => {
-							let mut path = PathBuf::from(&download_path);
-							path.push(file_path.file_name().unwrap());
-							path.to_path_buf()
-						}
-					},
-					false => file_path.to_path_buf(),
-				};
-
-				console.debug(&format!(
-					"\nOriginal Path: {:?}",
-					file_path.to_str().unwrap()
-				));
-				console.debug(&format!("New Path: {}", new_path.to_str().unwrap()));
-
-				let dir = new_path.parent().unwrap();
-				match !dir.exists() {
+			let new_path = match !download_path.is_empty() {
+				true => match !export_image.is_empty() {
 					true => {
-						console.debug(&format!("\nCreating directory: {}", dir.display()));
-						if let Err(error) = create_dir_all(dir) {
-							console.error(&format!("Error creating directory: {}", error));
-						}
+						let path = PathBuf::from(&export_image);
+						path.to_path_buf()
 					}
-					false => {}
-				}
+					false => {
+						let mut path = PathBuf::from(&download_path);
+						path.push(decoded.file_name().unwrap());
+						path.to_path_buf()
+					}
+				},
 
-				match copy(&file_path, &new_path) {
-					Err(error) => console.error(&format!("\nError copying file: {}", error)),
-					Ok(_) => {
-						if is_export {
-							proxy
-								.send_event(UserEvent::CloseWindow(window_id))
-								.unwrap_or_default();
-						}
-						if let Err(error) = remove_file(&file_path) {
-							console.error(&format!("Error deleting file: {}", error));
-						}
+				false => decoded.to_path_buf(),
+			};
+
+			console.debug(&format!("\nOriginal Path: {:?}", decoded));
+			console.debug(&format!("New Path: {:?}", new_path));
+
+			let dir = new_path.parent().unwrap();
+			match !dir.exists() {
+				true => {
+					console.debug(&format!("\nCreating directory: {:?}", dir));
+					if let Err(error) = create_dir_all(dir) {
+						console.error(&format!("Error creating directory: {}", error));
+					}
+				}
+				false => {}
+			}
+
+			match copy(&decoded, &new_path) {
+				Err(error) => console.error(&format!("\nError copying file: {}", error)),
+				Ok(_) => {
+					if is_export {
+						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
+					}
+					if let Err(error) = remove_file(&decoded) {
+						console.error(&format!("Error deleting file: {}", error));
 					}
 				}
 			}
@@ -161,11 +153,7 @@ pub fn handle_events(
 			console.debug("Blob Chunk");
 		}
 		// WindowEvent::CloseRequested
-		Event::WindowEvent {
-			event: WindowEvent::CloseRequested,
-			window_id,
-			..
-		} => {
+		Event::WindowEvent { event: WindowEvent::CloseRequested, window_id, .. } => {
 			console.debug("Close Requested");
 			match webviews.get(&window_id) {
 				Some(_) => {
@@ -189,9 +177,8 @@ pub fn handle_events(
 		// UserEvent::OpenFile
 		Event::UserEvent(UserEvent::OpenFile(filepath)) => {
 			if filepath.is_some() {
-				let decoded = urldecode(&filepath.unwrap().to_str().unwrap())
-					.expect("UTF-8")
-					.to_string();
+				let decoded =
+					urldecode(&filepath.unwrap().to_str().unwrap()).expect("UTF-8").to_string();
 				let path = PathBuf::from(decoded);
 				if let Err(error) = open::that(&path.to_str().unwrap()) {
 					console.error(&format!("Error opening file: {}", error));

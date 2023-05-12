@@ -129,7 +129,8 @@ impl Showable {
 			Err(_) => return None,
 			Ok(item) => item,
 		};
-		let content: String = match canonicalize(&json["html"].as_str().unwrap_or_default()) {
+		let content: String = match canonicalize(&json["html"].as_str().unwrap_or_default())
+		{
 			Err(_) => json["html"]
 				.as_str()
 				.unwrap_or(Showable::default().content.as_str())
@@ -143,8 +144,10 @@ impl Showable {
 		let json_data: Value = json["json_data"].clone();
 		let icon = json["icon"].as_str().unwrap_or_default().to_string();
 		let title = json["title"].as_str().unwrap_or_default().to_string();
-		let mut height: Option<u32> = json["height"].as_u64().and_then(|x| u32::try_from(x).ok());
-		let mut width: Option<u32> = json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
+		let mut height: Option<u32> =
+			json["height"].as_u64().and_then(|x| u32::try_from(x).ok());
+		let mut width: Option<u32> =
+			json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
 		let mut theme = Theme::Light;
 
 		if !json_data.is_null() {
@@ -161,14 +164,8 @@ impl Showable {
 			}
 		}
 
-		let export_image = json["export_image"]
-			.as_str()
-			.unwrap_or_default()
-			.to_string();
-		let download_path = json["download_path"]
-			.as_str()
-			.unwrap_or_default()
-			.to_string();
+		let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
+		let download_path = json["download_path"].as_str().unwrap_or_default().to_string();
 
 		Some(Self {
 			content,
@@ -218,41 +215,25 @@ impl ShowableHeadless {
 		};
 
 		let json_data: Value = json["json_data"].clone();
-		let export_image = json["export_image"]
-			.as_str()
-			.unwrap_or_default()
-			.to_string();
+		let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
 		let mut data: Option<Value> = None;
 		let mut scale: Option<u32> = None;
 
 		if !json_data.is_null() {
 			if json_data["layout"].is_object() {
 				data = Some(json_data);
-				scale = Some(
-					json["json_data"]["scale"]
-						.as_u64()
-						.unwrap_or(2)
-						.try_into()
-						.unwrap(),
-				);
+				scale =
+					Some(json["json_data"]["scale"].as_u64().unwrap_or(2).try_into().unwrap());
 			}
 		}
 
-		Some(Self {
-			data,
-			export_image,
-			scale,
-		})
+		Some(Self { data, export_image, scale })
 	}
 }
 
 impl Default for ShowableHeadless {
 	fn default() -> Self {
-		Self {
-			data: None,
-			export_image: "".to_string(),
-			scale: None,
-		}
+		Self { data: None, export_image: "".to_string(), scale: None }
 	}
 }
 
@@ -267,35 +248,22 @@ pub struct PlotData {
 impl PlotData {
 	pub fn new(showable: &ShowableHeadless) -> Self {
 		let figure = showable.data.clone();
-		let format = showable
-			.export_image
-			.clone()
-			.split('.')
-			.last()
-			.unwrap_or_default()
-			.to_string();
+		let format =
+			showable.export_image.clone().split('.').last().unwrap_or_default().to_string();
 		let mut width = None;
 		let mut height = None;
 		let scale = showable.scale;
 
 		if !figure.is_none() {
-			let raw_width = figure.as_ref().unwrap()["layout"]["width"]
-				.as_u64()
-				.unwrap_or(800);
-			let raw_height = figure.as_ref().unwrap()["layout"]["height"]
-				.as_u64()
-				.unwrap_or(600);
+			let raw_width =
+				figure.as_ref().unwrap()["layout"]["width"].as_u64().unwrap_or(800);
+			let raw_height =
+				figure.as_ref().unwrap()["layout"]["height"].as_u64().unwrap_or(600);
 			width = Some(u32::try_from(raw_width).unwrap_or(800));
 			height = Some(u32::try_from(raw_height).unwrap_or(600));
 		}
 
-		Self {
-			figure,
-			format,
-			width,
-			height,
-			scale,
-		}
+		Self { figure, format, width, height, scale }
 	}
 
 	pub fn to_json(raw_json: &str) -> Value {
@@ -306,11 +274,11 @@ impl PlotData {
 
 		let plot_data = Self::new(&show);
 		serde_json::json!({
-			"figure": plot_data.figure,
-			"format": plot_data.format,
-			"width": plot_data.width,
-			"height": plot_data.height,
-			"scale": plot_data.scale,
+				"figure": plot_data.figure,
+				"format": plot_data.format,
+				"width": plot_data.width,
+				"height": plot_data.height,
+				"scale": plot_data.scale,
 		})
 	}
 }

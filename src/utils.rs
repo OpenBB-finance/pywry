@@ -33,18 +33,19 @@ pub fn get_icon(icon: &str) -> Option<Icon> {
 	let icon_object = match read(icon) {
 		Err(_) => None,
 		Ok(bytes) => {
-			let imagebuffer = match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
-				Err(_) => None,
-				Ok(loaded) => {
-					let imagebuffer = loaded.to_rgba8();
-					let (icon_width, icon_height) = imagebuffer.dimensions();
-					let icon_rgba = imagebuffer.into_raw();
-					match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
-						Err(_) => None,
-						Ok(icon) => Some(icon),
+			let imagebuffer =
+				match image::load_from_memory_with_format(&bytes, ImageFormat::Png) {
+					Err(_) => None,
+					Ok(loaded) => {
+						let imagebuffer = loaded.to_rgba8();
+						let (icon_width, icon_height) = imagebuffer.dimensions();
+						let icon_rgba = imagebuffer.into_raw();
+						match Icon::from_rgba(icon_rgba, icon_width, icon_height) {
+							Err(_) => None,
+							Ok(icon) => Some(icon),
+						}
 					}
-				}
-			};
+				};
 			imagebuffer
 		}
 	};

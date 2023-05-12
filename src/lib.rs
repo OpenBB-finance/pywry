@@ -26,6 +26,7 @@ impl WindowManager {
 	fn new() -> Self {
 		Self { debug: false }
 	}
+
 	fn start(&self, debug: bool) -> PyResult<()> {
 		let (sender, receiver) = mpsc::channel();
 		let console_printer = structs::ConsolePrinter::new(debug);

@@ -10,28 +10,23 @@ use wry::{
 };
 
 pub fn add_handlers<'a>(
-	init_view: WebViewBuilder<'a>,
-	proxy: &'a EventLoopProxy<UserEvent>,
-	window_id: WindowId,
-	download_path: String,
-	export_image: String,
-	window_icon: &str,
+	init_view: WebViewBuilder<'a>, proxy: &'a EventLoopProxy<UserEvent>,
+	window_id: WindowId, download_path: String, export_image: String, window_icon: &str,
 	is_headless: Option<bool>,
 ) -> WebViewBuilder<'a> {
 	let _is_export = !export_image.is_empty();
 	let is_headless = is_headless.unwrap_or_default();
 
 	// we add a download handler, if export_image is set it takes precedence over download_path
-	let init_view = init_view
+	return init_view
 		.with_download_started_handler({
 			let _proxy = proxy.clone();
 			move |_uri: String, default_path| {
 				#[cfg(not(target_os = "macos"))]
 				{
 					if _uri.starts_with("blob:") {
-						let submitted = _proxy
-							.send_event(UserEvent::BlobReceived(_uri, window_id))
-							.is_ok();
+						let submitted =
+							_proxy.send_event(UserEvent::BlobReceived(_uri, window_id)).is_ok();
 						return submitted;
 					}
 					let submitted = _proxy
@@ -68,25 +63,17 @@ pub fn add_handlers<'a>(
 			move |_, string| match string.as_str() {
 				_ if string.starts_with("#PYWRY_RESULT:") => {
 					let result = string.replace("#PYWRY_RESULT:", "").to_string();
-					proxy
-						.send_event(UserEvent::STDout(result))
-						.unwrap_or_default();
+					proxy.send_event(UserEvent::STDout(result)).unwrap_or_default();
 
 					if !is_headless {
-						proxy
-							.send_event(UserEvent::CloseWindow(window_id))
-							.unwrap_or_default();
+						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
 					}
 				}
 				_ if string.starts_with("data:") => {
-					proxy
-						.send_event(UserEvent::BlobChunk(Some(string)))
-						.unwrap_or_default();
+					proxy.send_event(UserEvent::BlobChunk(Some(string))).unwrap_or_default();
 				}
 				"#EOF" => {
-					proxy
-						.send_event(UserEvent::BlobChunk(None))
-						.unwrap_or_default();
+					proxy.send_event(UserEvent::BlobChunk(None)).unwrap_or_default();
 				}
 				_ if string.starts_with("#OPEN_FILE:") => {
 					proxy
@@ -94,9 +81,7 @@ pub fn add_handlers<'a>(
 						.unwrap_or_default();
 				}
 				"#DEVTOOLS" => {
-					proxy
-						.send_event(UserEvent::DevTools(window_id))
-						.unwrap_or_default();
+					proxy.send_event(UserEvent::DevTools(window_id)).unwrap_or_default();
 				}
 				_ => {}
 			}
@@ -120,9 +105,7 @@ pub fn add_handlers<'a>(
 				#[cfg(target_os = "macos")]
 				{
 					if success && _is_export {
-						proxy
-							.send_event(UserEvent::CloseWindow(window_id))
-							.unwrap_or_default();
+						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
 					}
 				}
 			}
@@ -147,6 +130,4 @@ pub fn add_handlers<'a>(
 		.with_initialization_script(constants::BLOBINIT_SCRIPT)
 		.with_initialization_script(constants::PYWRY_WINDOW_SCRIPT)
 		.with_initialization_script(constants::PLOTLY_RENDER_JS);
-
-	return init_view;
 }
