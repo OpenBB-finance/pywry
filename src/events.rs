@@ -1,7 +1,9 @@
 use crate::{
 	structs::{ConsolePrinter, PlotData, UserEvent},
-	utils::decode_path,
 };
+
+#[cfg(not(target_os = "macos"))]
+use crate::utils::decode_path;
 
 use std::{
 	collections::HashMap,
