@@ -26,10 +26,15 @@
         if (window.json_data) {
           clearInterval(interval);
 
-          // We need to remove the height and width from the layout
-          // for the plot to be responsive
-          delete window.json_data.layout.height;
-          delete window.plotly_figure.layout.width;
+          // If the json_data is a string, we need to parse it
+          if (typeof window.json_data === "string") {
+            window.json_data = JSON.parse(window.json_data);
+          }
+
+          // We need to set the height and width from the layout
+          // to undefined for the plot to be responsive
+          window.json_data.layout.height = undefined;
+          window.json_data.layout.width = undefined;
 
           const CONFIG = {
             responsive: true,
@@ -37,7 +42,7 @@
             scrollZoom: true,
           };
           Plotly.setPlotConfig(CONFIG);
-          Plotly.newPlot("myDiv", window.plotly_figure);
+          Plotly.newPlot("myDiv", window.json_data);
         }
       }, 20);
     </script>
