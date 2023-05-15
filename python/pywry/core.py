@@ -250,23 +250,18 @@ class PyWry:
             env = os.environ.copy()
             env["PYWRY_PROCESS_NAME"] = self.proc_name
 
-            runner = asyncio.create_subprocess_exec(
-                *cmd,
+            runner_attr = "create_subprocess_exec"
+            if self.shell:
+                runner_attr = "create_subprocess_shell"
+                if isinstance(cmd, list):
+                    cmd = " ".join(cmd)
+
+            runner = await getattr(asyncio, runner_attr)(
+                *cmd if not self.shell else cmd,
                 env=env,
                 limit=2**64,
                 **kwargs,
             )
-
-            if self.shell:
-                if isinstance(cmd, list):
-                    cmd = " ".join(cmd)
-                runner = asyncio.create_subprocess_shell(
-                    cmd,
-                    env=env,
-                    **kwargs,
-                )
-
-            runner = await runner
 
             with self.lock:
                 self.runner = runner
