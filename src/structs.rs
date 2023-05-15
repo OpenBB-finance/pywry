@@ -4,10 +4,10 @@ use wry::application::window::Icon;
 use wry::application::window::{Theme, WindowId};
 
 use std::{
-    convert::TryFrom,
-    fs::read_to_string,
-    io::{self, Write},
-    path::PathBuf,
+	convert::TryFrom,
+	fs::{canonicalize, read_to_string},
+	io::{self, Write},
+	path::PathBuf,
 };
 
 /// A struct for printing logs as JSON messages to the console.
@@ -45,265 +45,240 @@ use std::{
 ///
 #[derive(Copy, Clone)]
 pub struct ConsolePrinter {
-    pub active: bool,
+	pub active: bool,
 }
 
 impl ConsolePrinter {
-    pub fn new(active: bool) -> Self {
-        Self { active }
-    }
+	pub fn new(active: bool) -> Self {
+		Self { active }
+	}
 
-    pub fn get_json(&self, message: &str, level: &str) -> String {
-        match serde_json::from_str(&format!("{{\"{}\": \"{}\"}}", level, message)) {
-            Ok(json) => json,
-            Err(_) => serde_json::json!({}),
-        }
-        .to_string()
-    }
+	pub fn get_json(&self, message: &str, level: &str) -> String {
+		match serde_json::from_str(&format!("{{\"{}\": \"{}\"}}", level, message)) {
+			Ok(json) => json,
+			Err(_) => serde_json::json!({}),
+		}
+		.to_string()
+	}
 
-    pub fn debug(&self, message: &str) {
-        if self.active {
-            self.stdout_handler(message, "debug");
-        }
-    }
+	pub fn debug(&self, message: &str) {
+		if self.active {
+			self.stdout_handler(message, "debug");
+		}
+	}
 
-    pub fn info(&self, message: &str) {
-        self.stdout_handler(message, "info");
-    }
+	pub fn info(&self, message: &str) {
+		self.stdout_handler(message, "info");
+	}
 
-    pub fn error(&self, message: &str) {
-        self.stdout_handler(message, "error");
-    }
+	pub fn error(&self, message: &str) {
+		self.stdout_handler(message, "error");
+	}
 
-    pub fn stdout_handler(&self, message: &str, level: &str) {
-        let json = self.get_json(message, level);
-        std::thread::spawn(move || {
-            let stdout = io::stdout();
-            let mut handler = stdout.lock();
-            handler.write_all(format!("{}\n", json).as_bytes()).unwrap();
-            handler.flush().unwrap();
-        });
-    }
+	pub fn stdout_handler(&self, message: &str, level: &str) {
+		let json = self.get_json(message, level);
+		std::thread::spawn(move || {
+			let stdout = io::stdout();
+			let mut handler = stdout.lock();
+			handler.write_all(format!("{}\n", json).as_bytes()).unwrap();
+			handler.flush().unwrap();
+		});
+	}
 }
 
 pub enum UserEvent {
-    #[cfg(not(target_os = "macos"))]
-    DownloadStarted(String, String),
-    #[cfg(not(target_os = "macos"))]
-    DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
-    #[cfg(not(target_os = "macos"))]
-    BlobReceived(String, WindowId),
-    BlobChunk(Option<String>),
-    CloseWindow(WindowId),
-    DevTools(WindowId),
-    NewWindowCreated(WindowId),
-    NewPlot(String, WindowId),
-    OpenFile(Option<PathBuf>),
-    STDout(String),
-    #[cfg(not(target_os = "windows"))]
-    NewWindow(String, Option<Icon>),
+	#[cfg(not(target_os = "macos"))]
+	DownloadStarted(String, String),
+	#[cfg(not(target_os = "macos"))]
+	DownloadComplete(Option<PathBuf>, bool, String, String, WindowId),
+	#[cfg(not(target_os = "macos"))]
+	BlobReceived(String, WindowId),
+	BlobChunk(Option<String>),
+	CloseWindow(WindowId),
+	DevTools(WindowId),
+	NewWindowCreated(WindowId),
+	NewPlot(String, WindowId),
+	OpenFile(Option<PathBuf>),
+	STDout(String),
+	#[cfg(not(target_os = "windows"))]
+	NewWindow(String, Option<Icon>),
 }
 
 pub struct Showable {
-    pub content: String,
-    pub title: String,
-    pub height: Option<u32>,
-    pub width: Option<u32>,
-    pub icon: String,
-    pub data: Option<Value>,
-    pub download_path: String,
-    pub export_image: String,
-    pub theme: Theme,
+	pub content: String,
+	pub title: String,
+	pub height: Option<u32>,
+	pub width: Option<u32>,
+	pub icon: String,
+	pub data: Option<Value>,
+	pub download_path: String,
+	pub export_image: String,
+	pub theme: Theme,
 }
 
 impl Showable {
-    pub fn new(raw_json: &str) -> Option<Self> {
-        let json: serde_json::Value = match serde_json::from_str(raw_json) {
-            Err(_) => return None,
-            Ok(item) => item,
-        };
+	pub fn new(raw_json: &str) -> Option<Self> {
+		match Self::from_json(raw_json) {
+			Some(item) => Some(item),
+			None => Some(Self::default()),
+		}
+	}
 
-        let html_path = json["html_path"].as_str().unwrap_or_default().to_string();
-        let html_str = json["html_str"].as_str().unwrap_or_default().to_string();
-        let json_data: Value = json["json_data"].clone();
-        let icon = json["icon"].as_str().unwrap_or_default().to_string();
-        let title = json["title"].as_str().unwrap_or_default().to_string();
-        let mut height: Option<u32> = json["height"].as_u64().and_then(|x| u32::try_from(x).ok());
-        let mut width: Option<u32> = json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
-        let mut data: Option<Value> = None;
-        let export_image = json["export_image"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
-        let download_path = json["download_path"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
-        let mut theme = Theme::Light;
+	pub fn from_json(raw_json: &str) -> Option<Self> {
+		let json: serde_json::Value = match serde_json::from_str(raw_json) {
+			Err(_) => return None,
+			Ok(item) => item,
+		};
+		let content: String = match canonicalize(&json["html"].as_str().unwrap_or_default())
+		{
+			Err(_) => json["html"]
+				.as_str()
+				.unwrap_or(Showable::default().content.as_str())
+				.to_string(),
+			Ok(path) => match read_to_string(&path) {
+				Err(_) => return None,
+				Ok(item) => item,
+			},
+		};
 
-        if !json_data.is_null() {
-            theme = match json_data["theme"].as_str().unwrap_or_default() {
-                "dark" => Theme::Dark,
-                "light" => Theme::Light,
-                _ => Theme::Light,
-            };
-            if json_data["layout"].is_object() {
-                let raw_width = json_data["layout"]["width"].as_u64().unwrap_or(800);
-                let raw_height = json_data["layout"]["height"].as_u64().unwrap_or(600);
-                width = Some(u32::try_from(raw_width).unwrap_or(800));
-                height = Some(u32::try_from(raw_height).unwrap_or(600));
-            }
-            data = Some(json_data);
-        }
+		let json_data: Value = json["json_data"].clone();
+		let icon = json["icon"].as_str().unwrap_or_default().to_string();
+		let title = json["title"].as_str().unwrap_or_default().to_string();
+		let mut height: Option<u32> =
+			json["height"].as_u64().and_then(|x| u32::try_from(x).ok());
+		let mut width: Option<u32> =
+			json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
+		let mut theme = Theme::Light;
 
-        let mut content = match html_path.is_empty() {
-            true => html_str,
-            false => read_to_string(html_path).unwrap_or_default(),
-        };
+		if !json_data.is_null() {
+			theme = match json_data["theme"].as_str().unwrap_or_default() {
+				"dark" => Theme::Dark,
+				"light" => Theme::Light,
+				_ => theme,
+			};
+			if json_data["layout"].is_object() {
+				let raw_width = json_data["layout"]["width"].as_u64().unwrap_or(800);
+				let raw_height = json_data["layout"]["height"].as_u64().unwrap_or(600);
+				width = Some(u32::try_from(raw_width).unwrap_or(800));
+				height = Some(u32::try_from(raw_height).unwrap_or(600));
+			}
+		}
 
-        if content.is_empty() {
-            content = String::from(
-                "<h1 style='color:red'>No html content to show, please provide a html_path or a html_str key</h1>",
-            );
-        }
+		let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
+		let download_path = json["download_path"].as_str().unwrap_or_default().to_string();
 
-        Some(Self {
-            content,
-            title,
-            height,
-            width,
-            icon,
-            data,
-            download_path,
-            export_image,
-            theme,
-        })
-    }
+		Some(Self {
+			content,
+			title,
+			height,
+			width,
+			icon,
+			data: Some(json_data),
+			download_path,
+			export_image,
+			theme,
+		})
+	}
 }
 
 impl Default for Showable {
-    fn default() -> Self {
-        Self {
-            content: "".to_string(),
-            title: "Error Creating Showable Object".to_string(),
-            height: None,
-            width: None,
-            icon: "".to_string(),
-            data: None,
-            download_path: "".to_string(),
-            export_image: "".to_string(),
-            theme: Theme::Light,
-        }
-    }
+	fn default() -> Self {
+		Self {
+			content: "
+			<h1 style='color:red'>No html content to show,
+			please provide a valid html string or path to html file.</h1>
+			"
+			.to_string(),
+			title: "Error Creating Showable Object".to_string(),
+			height: None,
+			width: None,
+			icon: "".to_string(),
+			data: None,
+			download_path: "".to_string(),
+			export_image: "".to_string(),
+			theme: Theme::Light,
+		}
+	}
 }
 
 pub struct ShowableHeadless {
-    pub data: Option<Value>,
-    pub export_image: String,
-    pub scale: Option<u32>,
+	pub data: Option<Value>,
+	pub export_image: String,
+	pub scale: Option<u32>,
 }
 
 impl ShowableHeadless {
-    pub fn new(raw_json: &str) -> Option<Self> {
-        let json: serde_json::Value = match serde_json::from_str(raw_json) {
-            Err(_) => return None,
-            Ok(item) => item,
-        };
+	pub fn new(raw_json: &str) -> Option<Self> {
+		let json: serde_json::Value = match serde_json::from_str(raw_json) {
+			Err(_) => return None,
+			Ok(item) => item,
+		};
 
-        let json_data: Value = json["json_data"].clone();
-        let export_image = json["export_image"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
-        let mut data: Option<Value> = None;
-        let mut scale: Option<u32> = None;
+		let json_data: Value = json["json_data"].clone();
+		let export_image = json["export_image"].as_str().unwrap_or_default().to_string();
+		let mut data: Option<Value> = None;
+		let mut scale: Option<u32> = None;
 
-        if !json_data.is_null() {
-            if json_data["layout"].is_object() {
-                data = Some(json_data);
-                scale = Some(
-                    json["json_data"]["scale"]
-                        .as_u64()
-                        .unwrap_or(2)
-                        .try_into()
-                        .unwrap(),
-                );
-            }
-        }
+		if !json_data.is_null() {
+			if json_data["layout"].is_object() {
+				data = Some(json_data);
+				scale =
+					Some(json["json_data"]["scale"].as_u64().unwrap_or(2).try_into().unwrap());
+			}
+		}
 
-        Some(Self {
-            data,
-            export_image,
-            scale,
-        })
-    }
+		Some(Self { data, export_image, scale })
+	}
 }
 
 impl Default for ShowableHeadless {
-    fn default() -> Self {
-        Self {
-            data: None,
-            export_image: "".to_string(),
-            scale: None,
-        }
-    }
+	fn default() -> Self {
+		Self { data: None, export_image: "".to_string(), scale: None }
+	}
 }
 
 pub struct PlotData {
-    pub figure: Option<Value>,
-    pub format: String,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub scale: Option<u32>,
+	pub figure: Option<Value>,
+	pub format: String,
+	pub width: Option<u32>,
+	pub height: Option<u32>,
+	pub scale: Option<u32>,
 }
 
 impl PlotData {
-    pub fn new(showable: &ShowableHeadless) -> Self {
-        let figure = showable.data.clone();
-        let format = showable
-            .export_image
-            .clone()
-            .split('.')
-            .last()
-            .unwrap_or_default()
-            .to_string();
-        let mut width = None;
-        let mut height = None;
-        let scale = showable.scale;
+	pub fn new(showable: &ShowableHeadless) -> Self {
+		let figure = showable.data.clone();
+		let format =
+			showable.export_image.clone().split('.').last().unwrap_or_default().to_string();
+		let mut width = None;
+		let mut height = None;
+		let scale = showable.scale;
 
-        if !figure.is_none() {
-            let raw_width = figure.as_ref().unwrap()["layout"]["width"]
-                .as_u64()
-                .unwrap_or(800);
-            let raw_height = figure.as_ref().unwrap()["layout"]["height"]
-                .as_u64()
-                .unwrap_or(600);
-            width = Some(u32::try_from(raw_width).unwrap_or(800));
-            height = Some(u32::try_from(raw_height).unwrap_or(600));
-        }
+		if !figure.is_none() {
+			let raw_width =
+				figure.as_ref().unwrap()["layout"]["width"].as_u64().unwrap_or(800);
+			let raw_height =
+				figure.as_ref().unwrap()["layout"]["height"].as_u64().unwrap_or(600);
+			width = Some(u32::try_from(raw_width).unwrap_or(800));
+			height = Some(u32::try_from(raw_height).unwrap_or(600));
+		}
 
-        Self {
-            figure,
-            format,
-            width,
-            height,
-            scale,
-        }
-    }
+		Self { figure, format, width, height, scale }
+	}
 
-    pub fn to_json(raw_json: &str) -> Value {
-        let show = match ShowableHeadless::new(raw_json) {
-            Some(showable) => showable,
-            None => ShowableHeadless::default(),
-        };
+	pub fn to_json(raw_json: &str) -> Value {
+		let show = match ShowableHeadless::new(raw_json) {
+			Some(showable) => showable,
+			None => ShowableHeadless::default(),
+		};
 
-        let plot_data = Self::new(&show);
-        serde_json::json!({
-            "figure": plot_data.figure,
-            "format": plot_data.format,
-            "width": plot_data.width,
-            "height": plot_data.height,
-            "scale": plot_data.scale,
-        })
-    }
+		let plot_data = Self::new(&show);
+		serde_json::json!({
+				"figure": plot_data.figure,
+				"format": plot_data.format,
+				"width": plot_data.width,
+				"height": plot_data.height,
+				"scale": plot_data.scale,
+		})
+	}
 }

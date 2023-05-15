@@ -13,7 +13,7 @@ if __name__ == "__main__":
     try:
         handler = PyWry()
         handler.send_html(
-            html_str="<h1 style='color: red;'>Welcome to PyWry!</h1>",
+            html="<h1 style='color: red;'>Welcome to PyWry!</h1>",
             title="PyWry Demo",
         )
         handler.start()

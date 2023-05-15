@@ -55,7 +55,7 @@ class Backend(PyWry):
         json_data = json.loads(fig.to_json())
 
         outgoing = dict(
-            html_path=self.get_plotly_html(),
+            html=self.get_plotly_html(),
             json_data=json_data,
             title=title,
         )

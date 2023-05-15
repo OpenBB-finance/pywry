@@ -3,13 +3,13 @@ import atexit
 import json
 import os
 import re
-import subprocess
 import sys
 import threading
 import traceback
 from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
 from queue import Queue
+from subprocess import PIPE
 from typing import List, Optional, Union
 
 import setproctitle
@@ -18,6 +18,11 @@ from pywry import pywry
 
 __all__ = ["PyWry", "BackendFailedToStart"]
 
+if sys.version_info < (3, 9):
+    QueueT = Queue
+else:
+    QueueT = Queue[dict]
+
 AsyncioException = (
     CancelledError,
     IncompleteReadError,
@@ -25,10 +30,17 @@ AsyncioException = (
     ConnectionResetError,
 )
 
+# Ignore some messages from the backend that can be confusing to users
+# these messages are not errors, but they are not useful either
+IGNORE_REGEX = (
+    r"(Wayland|Compositor|webkit_download|"
+    r"NeedDebuggerBreak|GLib-GIO-CRITICAL|"
+    r"EGLDisplay|libEGL|Could not determine|"
+    r"Gtk-Message|WARNING|Gtk)"
+)
 
 ACCEPTED_KEYS_TYPES = {
-    "html_str": str,
-    "html_path": (str, Path),
+    "html": (str, Path),
     "title": str,
     "icon": (str, Path),
     "json_data": (dict, str),
@@ -51,8 +63,16 @@ class PyWry:
     listens to pipes and shows windows with provided html and json data.
     """
 
-    _bootargs: List[str] = []
     __version__ = pywry.__version__
+    _bootargs: List[str] = []
+
+    daemon: bool = True
+    debug: bool = False
+    shell: bool = False
+    outgoing: List[str] = []
+    init_engine: List[str] = []
+    recv: QueueT = Queue()
+    base: pywry.WindowManager = pywry.WindowManager()
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         "Makes the class a 'singleton' by only allowing one instance at a time"
@@ -66,16 +86,9 @@ class PyWry:
         max_retries: int = 30,
         proc_name: str = "PyWry",
     ):
+        self.daemon: bool = daemon
         self.max_retries: int = max_retries
         self.proc_name: str = proc_name
-
-        self.outgoing: List[str] = []
-        self.recv: Queue[dict] = Queue()
-        self.init_engine: List[str] = []
-        self.daemon: bool = daemon
-        self.debug: bool = False
-        self.shell: bool = False
-        self.base = pywry.WindowManager()
 
         try:
             self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
@@ -100,9 +113,8 @@ class PyWry:
 
     def send_html(
         self,
-        html_str: Optional[str] = None,
-        html_path: Optional[Union[str, Path]] = None,
-        json_data: Optional[dict] = None,
+        html: Union[str, Path],
+        json_data: Optional[Union[dict, str]] = None,
         title: str = "",
         width: int = 800,
         height: int = 600,
@@ -112,12 +124,9 @@ class PyWry:
 
         Parameters
         ----------
-        html_str : str, optional
-            HTML string to send to backend.
-            If not provided, html_path must be provided, by default None
-        html_path : str, optional
-            Path to html file to send to backend, by default None
-        json_data : dict, optional
+        html: Union[str, Path]
+            HTML to send to backend.
+        json_data : Optional[Union[dict, str]], optional
             JSON data to send to backend, by default None
         title : str, optional
             Title to display in the window, by default ""
@@ -127,18 +136,11 @@ class PyWry:
             Height of the window, by default 600
         """
         self.loop.run_until_complete(self.check_backend())
-
         kwargs.update(
             dict(
-                html_str=html_str,
-                html_path=html_path,
-                json_data=json_data,
-                title=title,
-                width=width,
-                height=height,
+                html=html, json_data=json_data, title=title, width=width, height=height
             )
         )
-
         self.send_outgoing(kwargs)
 
     def send_outgoing(self, outgoing: dict):
@@ -199,11 +201,16 @@ class PyWry:
         if self.debug:
             traceback.print_exc()
 
+    def clean_print(self, message: dict):
+        """Clean messages from the backend."""
+        if message and not re.search(IGNORE_REGEX, message, re.IGNORECASE):
+            print(message)
+
     async def check_backend(self):
         """Check if the backend is running."""
 
         if self.max_retries == 0:
-            # If the backend is not running and we have tried to connect
+            # If the backend is not running and we have retried
             # max_retries times, raise an error
             raise BackendFailedToStart("Exceededed max retries")
         try:
@@ -228,45 +235,26 @@ class PyWry:
                     self._is_started.clear()
                     self._is_closed.set()
 
-            kwargs = dict(
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+            kwargs = dict()
             cmd = [sys.executable, "-m", "pywry.backend", "--start"] + self._bootargs
 
-            # for pyinstaller builds
+            # For pyinstaller builds we need to get the path to the executable
             if hasattr(sys, "frozen"):
                 # pylint: disable=E1101,W0212
                 exec_name = os.environ.get("PYWRY_EXECUTABLE", "PyWry")
                 pywrypath = (Path(sys._MEIPASS) / exec_name).resolve()
-                cmd = f"{exec_name} --start{' '.join(self._bootargs)}"
+                cmd = f"{exec_name} --start {' '.join(self._bootargs)}"
                 if sys.platform == "darwin":
                     cmd = f"'{pywrypath}'"
 
-                kwargs.update(dict(cwd=str(pywrypath.parent)))
                 self.shell = True
+                kwargs.update(dict(cwd=str(pywrypath.parent)))
 
             env = os.environ.copy()
             env["PYWRY_PROCESS_NAME"] = self.proc_name
+            kwargs.update(dict(env=env))
 
-            runner = asyncio.create_subprocess_exec(
-                *cmd,
-                env=env,
-                limit=2**64,
-                **kwargs,
-            )
-
-            if self.shell:
-                if isinstance(cmd, list):
-                    cmd = " ".join(cmd)
-                runner = asyncio.create_subprocess_shell(
-                    cmd,
-                    env=env,
-                    **kwargs,
-                )
-
-            runner = await runner
+            runner = await self.create_subprocess(cmd=cmd, **kwargs)
 
             with self.lock:
                 self.runner = runner
@@ -284,17 +272,13 @@ class PyWry:
 
     def print_message(self, message: dict):
         """Print messages from the backend."""
-        print_style = {
-            "error": "\033[91m",
-            "info": "\033[93m",
-            "debug": "\033[92m",
-        }
+        print_style = {"error": "\033[91m", "info": "\033[93m", "debug": "\033[92m"}
         if (
             key := re.search(r"error|info|debug", ",".join(message.keys()))
         ) is not None:
             return print(f"{print_style[key.group()]}{message[key.group()]}")
 
-        print(message)
+        return self.clean_print(message)
 
     async def recv_message(self, data: str):
         """Creates a new task to process messages from the stdout reader."""
@@ -304,33 +288,27 @@ class PyWry:
                 return self.recv.put(message, block=False)
             self.print_message(message)
         except (json.JSONDecodeError, AttributeError):
-            print(data)
+            self.clean_print(data)
 
     async def stdout_reader(self):
         """Read stdout from the backend."""
-
         try:
             while self._is_started.is_set():
                 if data := (await self.runner.stdout.readline()).decode().strip():
                     asyncio.create_task(self.recv_message(data))
-                await asyncio.sleep(0.02)
 
+                await asyncio.sleep(0.02)
         except Exception as proc_err:
             await self.exception_handler(proc_err)
 
     async def stderr_reader(self):
         """Read stderr from the backend."""
-        # Ignore some messages from the backend that can be confusing to users
-        # these messages are not errors, but they are not useful either
-        ignore_regex = r"(Wayland|Compositor|webkit_download|NeedDebuggerBreak)"
         try:
             while self._is_started.is_set():
                 if data := (await self.runner.stderr.readline()).decode().strip():
-                    if data and not re.search(ignore_regex, data):
-                        print(data)
+                    self.clean_print(data)
 
                 await asyncio.sleep(1)
-
         except Exception as proc_err:
             await self.exception_handler(proc_err)
 
@@ -343,10 +321,11 @@ class PyWry:
         # We need to create a new task for each reader, otherwise
         # the loop will not be able to run the main task
         self.subprocess_loop.create_task(self.stdout_reader())
-        self.subprocess_loop.create_task(self.stderr_reader())
 
-        while not self._is_started.is_set():
-            await asyncio.sleep(0.1)
+        # We only need to read stderr if we are in debug mode
+        if self.debug:
+            self.subprocess_loop.create_task(self.stderr_reader())
+
         try:
             if self.init_engine:
                 # if there is data in the init_engine list,
@@ -369,8 +348,8 @@ class PyWry:
 
                     await asyncio.sleep(0.5)
 
-                except (BrokenPipeError, ConnectionResetError) as runtime_err:
-                    await self.exception_handler(runtime_err)
+                except (BrokenPipeError, ConnectionResetError) as pipe_err:
+                    await self.exception_handler(pipe_err)
                     await self.run_backend()
 
                 except AsyncioException as asyncio_err:
@@ -430,7 +409,7 @@ class PyWry:
             self.loop.run_until_complete(asyncio.sleep(3))
         self.loop.run_until_complete(self.check_backend())
 
-    def close(self, reset: bool = False):  # pylint: disable=unused-argument
+    def close(self):
         """Close the backend."""
         with self.lock:
             self._is_started.clear()
@@ -442,3 +421,16 @@ class PyWry:
                 self.subprocess_loop.call_soon_threadsafe(self.runner.kill)
             except Exception:
                 pass
+
+    async def create_subprocess(self, cmd: Union[str, List[str]], **kwargs):
+        if self.shell:
+            if isinstance(cmd, list):
+                cmd = " ".join(cmd)
+
+            return await asyncio.create_subprocess_shell(
+                cmd, PIPE, PIPE, PIPE, 2**64, **kwargs
+            )
+
+        return await asyncio.create_subprocess_exec(
+            *cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
+        )
