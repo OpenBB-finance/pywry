@@ -114,7 +114,7 @@ class PyWry:
     def send_html(
         self,
         html: Union[str, Path],
-        json_data: Optional[dict] = None,
+        json_data: Optional[Union[dict, str]] = None,
         title: str = "",
         width: int = 800,
         height: int = 600,
@@ -126,7 +126,7 @@ class PyWry:
         ----------
         html: Union[str, Path]
             HTML to send to backend.
-        json_data : dict, optional
+        json_data : Optional[Union[dict, str]], optional
             JSON data to send to backend, by default None
         title : str, optional
             Title to display in the window, by default ""
