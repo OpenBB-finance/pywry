@@ -49,7 +49,7 @@ setup(
     zip_safe=False,
     setup_requires=["setuptools-rust>=0.10.1", "wheel", "toml"],
     package_dir={"": "python"},
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     include_package_data=False,
     package_data={"pywry": ["py.typed", "pywry.pyi"]},
 )

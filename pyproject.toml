@@ -1,7 +1,7 @@
 [project]
 name = "pywry"
 version = "0.5.6"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
@@ -33,7 +33,7 @@ dev = ["auditwheel", "wheel"]
 
 [tool.ruff]
 line-length = 122
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.isort]
 combine-as-imports = true
