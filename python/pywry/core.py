@@ -428,7 +428,7 @@ class PyWry:
                 cmd = " ".join(cmd)
 
             return await asyncio.create_subprocess_shell(
-                cmd, PIPE, PIPE, PIPE, 2**64, **kwargs
+                cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
             )
 
         return await asyncio.create_subprocess_exec(
