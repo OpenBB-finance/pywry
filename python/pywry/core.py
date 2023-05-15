@@ -18,6 +18,11 @@ from pywry import pywry
 
 __all__ = ["PyWry", "BackendFailedToStart"]
 
+if sys.version_info < (3, 9):
+    QueueT = Queue
+else:
+    QueueT = Queue[dict]
+
 AsyncioException = (
     CancelledError,
     IncompleteReadError,
@@ -66,7 +71,7 @@ class PyWry:
     shell: bool = False
     outgoing: List[str] = []
     init_engine: List[str] = []
-    recv: Queue[dict] = Queue()
+    recv: QueueT = Queue()
     base: pywry.WindowManager = pywry.WindowManager()
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
