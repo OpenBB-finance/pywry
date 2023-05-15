@@ -237,7 +237,7 @@ class PyWry:
                 # pylint: disable=E1101,W0212
                 exec_name = os.environ.get("PYWRY_EXECUTABLE", "PyWry")
                 pywrypath = (Path(sys._MEIPASS) / exec_name).resolve()
-                cmd = f"{exec_name} --start{' '.join(self._bootargs)}"
+                cmd = f"{exec_name} --start {' '.join(self._bootargs)}"
                 if sys.platform == "darwin":
                     cmd = f"'{pywrypath}'"
 
