@@ -30,7 +30,8 @@ AsyncioException = (
 IGNORE_REGEX = (
     r"(Wayland|Compositor|webkit_download|"
     r"NeedDebuggerBreak|GLib-GIO-CRITICAL|"
-    r"EGLDisplay|libEGL|Could not determine)"
+    r"EGLDisplay|libEGL|Could not determine|"
+    r"Gtk-Message|WARNING|Gtk)"
 )
 
 ACCEPTED_KEYS_TYPES = {
@@ -197,7 +198,7 @@ class PyWry:
 
     def clean_print(self, message: dict):
         """Clean messages from the backend."""
-        if message and not re.search(IGNORE_REGEX, message):
+        if message and not re.search(IGNORE_REGEX, message, re.IGNORECASE):
             print(message)
 
     async def check_backend(self):
