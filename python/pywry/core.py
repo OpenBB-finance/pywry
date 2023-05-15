@@ -3,13 +3,13 @@ import atexit
 import json
 import os
 import re
-import subprocess
 import sys
 import threading
 import traceback
 from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
 from queue import Queue
+from subprocess import PIPE
 from typing import List, Optional, Union
 
 import setproctitle
@@ -228,12 +228,7 @@ class PyWry:
                     self._is_started.clear()
                     self._is_closed.set()
 
-            kwargs = dict(
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                limit=2**64,
-            )
+            kwargs = dict()
             cmd = [sys.executable, "-m", "pywry.backend", "--start"] + self._bootargs
 
             # For pyinstaller builds we need to get the path to the executable
@@ -245,24 +240,14 @@ class PyWry:
                 if sys.platform == "darwin":
                     cmd = f"'{pywrypath}'"
 
-                kwargs.update(dict(cwd=str(pywrypath.parent)))
                 self.shell = True
+                kwargs.update(dict(cwd=str(pywrypath.parent)))
 
             env = os.environ.copy()
             env["PYWRY_PROCESS_NAME"] = self.proc_name
+            kwargs.update(dict(env=env))
 
-            runner_attr = "create_subprocess_exec"
-            if self.shell:
-                kwargs.pop("limit")
-                runner_attr = "create_subprocess_shell"
-                if isinstance(cmd, list):
-                    cmd = " ".join(cmd)
-
-            runner = await getattr(asyncio, runner_attr)(
-                *cmd if not self.shell else cmd,
-                env=env,
-                **kwargs,
-            )
+            runner = await self.create_subprocess(cmd=cmd, **kwargs)
 
             with self.lock:
                 self.runner = runner
@@ -429,3 +414,16 @@ class PyWry:
                 self.subprocess_loop.call_soon_threadsafe(self.runner.kill)
             except Exception:
                 pass
+
+    async def create_subprocess(self, cmd: Union[str, List[str]], **kwargs):
+        if self.shell:
+            if isinstance(cmd, list):
+                cmd = " ".join(cmd)
+
+            return await asyncio.create_subprocess_shell(
+                cmd, PIPE, PIPE, PIPE, 2**64, **kwargs
+            )
+
+        return await asyncio.create_subprocess_exec(
+            *cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
+        )
