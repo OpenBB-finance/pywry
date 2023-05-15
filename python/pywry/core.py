@@ -232,6 +232,7 @@ class PyWry:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                limit=2**64,
             )
             cmd = [sys.executable, "-m", "pywry.backend", "--start"] + self._bootargs
 
@@ -252,6 +253,7 @@ class PyWry:
 
             runner_attr = "create_subprocess_exec"
             if self.shell:
+                kwargs.pop("limit")
                 runner_attr = "create_subprocess_shell"
                 if isinstance(cmd, list):
                     cmd = " ".join(cmd)
@@ -259,7 +261,6 @@ class PyWry:
             runner = await getattr(asyncio, runner_attr)(
                 *cmd if not self.shell else cmd,
                 env=env,
-                limit=2**64,
                 **kwargs,
             )
 
