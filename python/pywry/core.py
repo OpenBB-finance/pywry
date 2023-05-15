@@ -80,6 +80,7 @@ class PyWry:
         max_retries: int = 30,
         proc_name: str = "PyWry",
     ):
+        self.daemon: bool = daemon
         self.max_retries: int = max_retries
         self.proc_name: str = proc_name
 
