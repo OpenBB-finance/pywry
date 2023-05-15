@@ -10,7 +10,7 @@ from asyncio.exceptions import CancelledError, IncompleteReadError, TimeoutError
 from pathlib import Path
 from queue import Queue
 from subprocess import PIPE
-from typing import List, Optional, Union
+from typing import List, Optional, Type, Union
 
 import setproctitle
 
@@ -66,7 +66,7 @@ class PyWry:
     shell: bool = False
     outgoing: List[str] = []
     init_engine: List[str] = []
-    recv: Queue[dict] = Queue()
+    recv: Type[Queue[dict]] = Queue()
     base: pywry.WindowManager = pywry.WindowManager()
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
