@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.5.7"
+version = "0.5.8"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
