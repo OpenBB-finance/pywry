@@ -157,3 +157,7 @@ WebView2 provided by Microsoft Edge Chromium is used. So wry supports Windows 7,
 #### `"/lib/x86_64-linux-gnu/libgio-2.0.so.0: undefined symbol: g_module_open_full"`
 
 This is a known issue with the `gio` library. You can fix it by installing the `libglib2.0-dev` package.
+
+
+
+PyWry is a project that aims to provide Python bindings for WRY, a cross-platform webview library. WRY is a trademark of the Tauri Program within the Commons Conservancy and PyWry is not officially endorsed or supported by them. PyWry is an independent and community-driven effort that respects the original goals and values of Tauri and WRY. PyWry does not claim any ownership or affiliation with WRY or the Tauri Program.
