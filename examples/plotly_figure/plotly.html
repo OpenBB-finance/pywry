@@ -1,50 +1,53 @@
 <html>
-  <head>
-    <script src="https://cdn.plot.ly/plotly-2.21.0.min.js"></script>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      #myDiv {
-        width: 100vw;
-        height: 100vh;
-      }
-    </style>
-  </head>
 
-  <body>
-    <div id="myDiv"><!-- Plotly chart will be drawn inside this DIV --></div>
-    <script type="text/javascript">
-      window.PlotlyConfig = { MathJaxConfig: "local" };
+<head>
+  <script src="https://cdn.plot.ly/plotly-2.21.0.min.js"></script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
 
-      var interval = setInterval(function () {
-        // When sending a figure json to PyWry, it is stored in the window object
-        // under the name "json_data". If it exists, we can plot it.
-        if (window.json_data) {
-          clearInterval(interval);
+    #myDiv {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
 
-          // If the json_data is a string, we need to parse it
-          if (typeof window.json_data === "string") {
-            window.json_data = JSON.parse(window.json_data);
-          }
+<body>
+  <div id="myDiv"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <script type="text/javascript">
+    window.PlotlyConfig = { MathJaxConfig: "local" };
 
-          // We need to set the height and width from the layout
-          // to undefined for the plot to be responsive
-          window.json_data.layout.height = undefined;
-          window.json_data.layout.width = undefined;
+    var interval = setInterval(function () {
+      // When sending a figure json to PyWry, it is stored in the window object
+      // under the name "json_data". If it exists, we can plot it.
+      if (window.json_data) {
+        clearInterval(interval);
 
-          const CONFIG = {
-            responsive: true,
-            displaylogo: false,
-            scrollZoom: true,
-          };
-          Plotly.setPlotConfig(CONFIG);
-          Plotly.newPlot("myDiv", window.json_data);
+        // If the json_data is a string, we need to parse it
+        if (typeof window.json_data === "string") {
+          window.json_data = JSON.parse(window.json_data);
         }
-      }, 20);
-    </script>
-  </body>
+
+        // We need to set the height and width from the layout
+        // to undefined for the plot to be responsive
+        window.json_data.layout.height = undefined;
+        window.json_data.layout.width = undefined;
+
+        const CONFIG = {
+          responsive: true,
+          displaylogo: false,
+          scrollZoom: true,
+        };
+        Plotly.setPlotConfig(CONFIG);
+        Plotly.newPlot("myDiv", window.json_data);
+      }
+    }, 20);
+  </script>
+</body>
+
 </html>

@@ -15,7 +15,7 @@ use std::{
 
 use wry::{
 	application::{
-		dpi::LogicalSize,
+		dpi::{LogicalSize, PhysicalPosition},
 		event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
 		window::{Theme, WindowBuilder, WindowId},
 	},
@@ -47,8 +47,18 @@ fn create_new_window(
 		false => content,
 	};
 
+	let json_data = to_show.data.clone().unwrap_or_default();
+	console.debug(&format!("json_data: {}", json_data));
+
+	let screen_size = event_loop.available_monitors().nth(0).unwrap().size();
+	let window_size = (to_show.width.unwrap_or(800), to_show.height.unwrap_or(600));
+
 	let mut pre_window = WindowBuilder::new()
 		.with_title(to_show.title)
+		.with_position(PhysicalPosition::new(
+			(screen_size.width / 2) - (window_size.0 / 2) + (rand::random::<u32>() % 100),
+			(screen_size.height / 2) - (window_size.1 / 2) + (rand::random::<u32>() % 100),
+		))
 		.with_window_icon(get_icon(&window_icon))
 		.with_min_inner_size(LogicalSize::new(800, 450))
 		.with_theme(Some(Theme::Dark));
@@ -65,7 +75,7 @@ fn create_new_window(
 		Ok(item) => item,
 	};
 
-	let minimized = !to_show.export_image.is_empty();
+	let minimized = !to_show.export_image.is_empty() && !console.active;
 	if minimized {
 		window.set_visible(false);
 		window.set_maximized(false);
@@ -84,10 +94,11 @@ fn create_new_window(
 		Err(error2) => return Err(error2.to_string()),
 		Ok(item) => item,
 	};
-	let protocol = webview
-		.with_background_color(background_color)
-		.with_hotkeys_zoom(true)
-		.with_custom_protocol("wry".into(), move |request| {
+	let protocol =
+		webview.with_background_color(background_color).with_hotkeys_zoom(true);
+
+	let protocol = match to_show.options.url.starts_with("wry://") {
+		true => protocol.with_custom_protocol("wry".into(), move |request| {
 			let path = request.uri().path();
 			let clean_path = &path[1..];
 			let content = content.clone();
@@ -114,7 +125,10 @@ fn create_new_window(
 				.header("Access-Control-Allow-Origin", "null")
 				.body(content)
 				.map_err(Into::into)
-		});
+		}),
+		false => protocol,
+	};
+
 	let export_image = to_show.export_image.clone();
 	let _is_export = !export_image.is_empty();
 	let download_path = to_show.download_path.clone();
@@ -149,7 +163,12 @@ fn create_new_window(
 		Some(false),
 	);
 
-	return match init_view.with_devtools(console.active).with_url("wry://localhost") {
+	let init_view = match to_show.options.init_script.is_some() {
+		true => init_view.with_initialization_script(&to_show.options.init_script.unwrap()),
+		false => init_view,
+	};
+
+	return match init_view.with_devtools(console.active).with_url(&to_show.options.url) {
 		Err(error3) => return Err(error3.to_string()),
 		Ok(subitem) => match subitem.build() {
 			Err(error4) => return Err(error4.to_string()),
@@ -193,7 +212,7 @@ pub fn start_wry(
 		let response = receiver.try_recv().unwrap_or_default();
 
 		if !response.is_empty() {
-			console.debug("\nReceived response");
+			console.debug("Received message from Python");
 
 			let chart = Showable::new(&response).unwrap_or_default();
 			match create_new_window(chart, &event_loop, &proxy, console) {

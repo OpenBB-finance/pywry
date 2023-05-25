@@ -12,7 +12,6 @@ from typing import List, Optional
 
 import numpy as np
 import psutil
-
 from backend import pywry_backend
 
 
@@ -132,7 +131,8 @@ def non_blocking_streamlit(process: psutil.Popen) -> None:
 if __name__ == "__main__":
     try:
         # PyWry creates a new thread for the backend,
-        # so we need to run the main loop in the main thread.
+        # so we need to have a loop running in the main thread.
+        # otherwise, the program will exit immediately.
         asyncio.create_task(Main().run())
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")

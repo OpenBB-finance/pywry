@@ -1517,12 +1517,13 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "image",
  "mime_guess",
  "open",
  "pyo3",
+ "rand 0.8.5",
  "serde",
  "serde_json",
  "tokio",
