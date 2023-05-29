@@ -1,6 +1,6 @@
 # PyWry Web Viewer
 
-![signal-2023-05-08-171646_002](https://github.com/OpenBB-finance/pywry/assets/25267873/a19338f7-0149-4ada-8fc7-389ae36c39fc)
+![signal-2023-05-29-171646_002](https://github.com/OpenBB-finance/pywry/blob/main/assets/PyWry.png)
 
 Easily create HTML webviewers in python utilizing the [wry](https://github.com/tauri-apps/wry) library. Unlike many HTML viewers that exist for Python - Pywry allows you to run javacsript. PyWry is also a ~2mb footprint for Mac and Windows - Linux will require a few more libraries which are listed below.
 
