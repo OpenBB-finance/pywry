@@ -394,6 +394,7 @@ class PyWry:
             return
         self.debug = debug
 
+        self._bootargs = []
         for arg, flag in zip([debug, headless], ["debug", "headless"]):
             if arg:
                 self._bootargs.append(f"--{flag}")

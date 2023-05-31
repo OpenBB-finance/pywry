@@ -1,4 +1,5 @@
 import atexit
+import base64
 import json
 import sys
 from multiprocessing import current_process
@@ -61,7 +62,46 @@ class Backend(PyWry):
         )
         self.send_outgoing(outgoing)
 
-    def start(self, debug: bool = False):
+    def figure_write_image(
+        self,
+        fig: go.Figure,
+        img_format: str = "png",
+        scale: int = 1,
+        timeout: int = 5,
+    ) -> bytes:
+        """Convert a Plotly figure to an image.
+
+        Parameters
+        ----------
+        fig : go.Figure
+            Plotly figure to convert to image.
+        format : str, optional
+            Image format, by default "png"
+        scale : int, optional
+            Image scale, by default 1
+        timeout : int, optional
+            Timeout for receiving the image, by default 5
+        """
+        self.loop.run_until_complete(self.check_backend())
+
+        json_data = json.loads(fig.to_json())
+        json_data["scale"] = scale
+        json_data["format"] = img_format
+
+        self.send_outgoing(dict(json_data=json_data))
+
+        incoming = self.recv.get(timeout=timeout)
+        if incoming.get("result", None):
+            # SVG images are already in the correct format
+            return (
+                incoming.get("result", "").encode("utf-8")
+                if img_format == "svg"
+                else base64.b64decode(incoming.get("result"))
+            )
+        else:
+            raise RuntimeError("Error converting figure to image.")
+
+    def start(self, debug: bool = False, headless: bool = False):
         """Start the backend WindowManager process.
 
         Parameters
@@ -69,9 +109,13 @@ class Backend(PyWry):
         debug : bool, optional
             Whether to start in debug mode to see the output and
             enable dev tools in the browser, by default False
+        headless : bool, optional
+            Whether to start in headless mode, by default False
+            (this is used for figure_write_image to prevent the
+            browser from opening)
         """
         if self.isatty:
-            super().start(debug)
+            super().start(debug, headless)
 
     async def check_backend(self):
         """Override to check if isatty."""

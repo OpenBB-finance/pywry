@@ -41,10 +41,10 @@ pub fn handle_events(
 			std::thread::spawn(move || {
 				let stdout: io::Stdout = io::stdout();
 				let mut handler = stdout.lock();
+				let decoded = urldecode(&result).unwrap_or_default();
 				handler
 					.write_all(
-						format!("{}\n", serde_json::json!({ "result": result }).to_string())
-							.as_bytes(),
+						format!("{}\n", serde_json::json!({ "result": decoded })).as_bytes(),
 					)
 					.unwrap();
 				handler.flush().unwrap();
