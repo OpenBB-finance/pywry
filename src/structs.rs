@@ -291,8 +291,7 @@ pub struct PlotData {
 impl PlotData {
 	pub fn new(showable: &ShowableHeadless) -> Self {
 		let figure = showable.data.clone();
-		let format =
-			showable.export_image.clone().split('.').last().unwrap_or_default().to_string();
+		let mut format = "png".to_string();
 		let mut width = None;
 		let mut height = None;
 		let scale = showable.scale;
@@ -304,6 +303,7 @@ impl PlotData {
 				figure.as_ref().unwrap()["layout"]["height"].as_u64().unwrap_or(600);
 			width = Some(u32::try_from(raw_width).unwrap_or(800));
 			height = Some(u32::try_from(raw_height).unwrap_or(600));
+			format = figure.as_ref().unwrap()["format"].as_str().unwrap_or("png").to_string();
 		}
 
 		Self { figure, format, width, height, scale }
