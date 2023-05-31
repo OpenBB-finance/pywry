@@ -104,6 +104,38 @@ pub enum UserEvent {
 	NewWindow(String, Option<Icon>),
 }
 
+pub struct WebViewOptions {
+	/// URL to be loaded when the webview is ready.
+	pub url: String,
+	/// JavaScript code to be injected when the webview is ready.
+	pub init_script: Option<String>,
+}
+
+impl Default for WebViewOptions {
+	/// Returns a default set of WebViewOptions.
+	fn default() -> Self {
+		Self { url: "wry://localhost".to_string(), init_script: None }
+	}
+}
+
+impl WebViewOptions {
+	pub fn new() -> Self {
+		Self::default()
+	}
+
+	/// Sets the URL to be loaded when the webview is ready.
+	pub fn with_url(mut self, url: String) -> Self {
+		self.url = url;
+		self
+	}
+
+	/// Sets the JavaScript code to be injected when the webview is ready.
+	pub fn with_init_script(mut self, init_script: String) -> Self {
+		self.init_script = Some(init_script);
+		self
+	}
+}
+
 pub struct Showable {
 	pub content: String,
 	pub title: String,
@@ -114,6 +146,7 @@ pub struct Showable {
 	pub download_path: String,
 	pub export_image: String,
 	pub theme: Theme,
+	pub options: WebViewOptions,
 }
 
 impl Showable {
@@ -149,6 +182,7 @@ impl Showable {
 		let mut width: Option<u32> =
 			json["width"].as_u64().and_then(|x| u32::try_from(x).ok());
 		let mut theme = Theme::Light;
+		let mut options = WebViewOptions::new();
 
 		if !json_data.is_null() {
 			theme = match json_data["theme"].as_str().unwrap_or_default() {
@@ -161,6 +195,13 @@ impl Showable {
 				let raw_height = json_data["layout"]["height"].as_u64().unwrap_or(600);
 				width = Some(u32::try_from(raw_width).unwrap_or(800));
 				height = Some(u32::try_from(raw_height).unwrap_or(600));
+			}
+			if json_data["url"].is_string() {
+				options = options.with_url(json_data["url"].as_str().unwrap().to_string());
+			}
+			if json_data["init_script"].is_string() {
+				options = options
+					.with_init_script(json_data["init_script"].as_str().unwrap().to_string());
 			}
 		}
 
@@ -177,6 +218,7 @@ impl Showable {
 			download_path,
 			export_image,
 			theme,
+			options,
 		})
 	}
 }
@@ -197,6 +239,7 @@ impl Default for Showable {
 			download_path: "".to_string(),
 			export_image: "".to_string(),
 			theme: Theme::Light,
+			options: WebViewOptions::default(),
 		}
 	}
 }

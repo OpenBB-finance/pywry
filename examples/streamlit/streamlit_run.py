@@ -11,7 +11,6 @@ def main():
 
     cmdline = " ".join(sys.argv)
     port = re.findall(r"--port=(\d+)", cmdline)
-    print(port)
     port = int(port[0]) if port else 8501
 
     flag_options = {

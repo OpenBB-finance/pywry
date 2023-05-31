@@ -333,7 +333,7 @@ class PyWry:
                 for msg in self.init_engine:
                     self.runner.stdin.write(f"{msg}\n".encode())
                     await self.runner.stdin.drain()
-                self.init_engine = []
+                self.init_engine.clear()
 
             while self._is_started.is_set():
                 try:
@@ -344,7 +344,8 @@ class PyWry:
                         self.runner.stdin.write(f"{data}\n".encode())
                         await self.runner.stdin.drain()
 
-                        self.init_engine = []
+                        with self.lock:
+                            self.init_engine.clear()
 
                     await asyncio.sleep(0.5)
 

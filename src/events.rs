@@ -1,6 +1,4 @@
-use crate::{
-	structs::{ConsolePrinter, PlotData, UserEvent},
-};
+use crate::structs::{ConsolePrinter, PlotData, UserEvent};
 
 #[cfg(not(target_os = "macos"))]
 use crate::utils::decode_path;
@@ -54,7 +52,6 @@ pub fn handle_events(
 		}
 		// UserEvent::NewPlot
 		Event::UserEvent(UserEvent::NewPlot(data, _windowid)) => {
-			let _proxy = proxy.clone();
 			let plot_data = PlotData::to_json(&data).to_string();
 
 			webviews
@@ -79,9 +76,9 @@ pub fn handle_events(
 		#[cfg(not(target_os = "macos"))]
 		Event::UserEvent(UserEvent::DownloadStarted(uri, path)) => {
 			if uri.len() < 200 {
-				console.debug(&format!("\nDownload Started: {}", uri));
+				console.debug(&format!("Download Started: {}", uri));
 			}
-			console.debug(&format!("\nPath: {}", path));
+			console.debug(&format!("Path: {}", path));
 		}
 		// UserEvent::DownloadComplete
 		#[cfg(not(target_os = "macos"))]
@@ -93,7 +90,7 @@ pub fn handle_events(
 			window_id,
 		)) => {
 			let is_export = !export_image.is_empty();
-			console.debug(&format!("\nDownload Complete: {}", success));
+			console.debug(&format!("Download Complete: {}", success));
 
 			let decoded = decode_path(&filepath.unwrap().to_str().unwrap());
 
@@ -113,13 +110,13 @@ pub fn handle_events(
 				false => decoded.to_path_buf(),
 			};
 
-			console.debug(&format!("\nOriginal Path: {:?}", decoded));
+			console.debug(&format!("Original Path: {:?}", decoded));
 			console.debug(&format!("New Path: {:?}", new_path));
 
 			let dir = new_path.parent().unwrap();
 			match !dir.exists() {
 				true => {
-					console.debug(&format!("\nCreating directory: {:?}", dir));
+					console.debug(&format!("Creating directory: {:?}", dir));
 					if let Err(error) = create_dir_all(dir) {
 						console.error(&format!("Error creating directory: {}", error));
 					}
@@ -128,7 +125,7 @@ pub fn handle_events(
 			}
 
 			match copy(&decoded, &new_path) {
-				Err(error) => console.error(&format!("\nError copying file: {}", error)),
+				Err(error) => console.error(&format!("Error copying file: {}", error)),
 				Ok(_) => {
 					if is_export {
 						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
@@ -190,7 +187,7 @@ pub fn handle_events(
 		// WindowEvent::NewWindow
 		#[cfg(not(target_os = "windows"))]
 		Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
-			console.debug(&format!("\nNew Window Requested: {}", uri));
+			console.debug(&format!("New Window Requested: {}", uri));
 			match uri.starts_with("http://") || uri.starts_with("https://") {
 				true => {
 					let pre_window = WindowBuilder::new()

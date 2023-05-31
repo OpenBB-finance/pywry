@@ -62,8 +62,9 @@ pub fn add_handlers<'a>(
 			let proxy = proxy.clone();
 			move |_, string| match string.as_str() {
 				_ if string.starts_with("#PYWRY_RESULT:") => {
-					let result = string.replace("#PYWRY_RESULT:", "").to_string();
-					proxy.send_event(UserEvent::STDout(result)).unwrap_or_default();
+					proxy
+						.send_event(UserEvent::STDout(string[14..].to_string()))
+						.unwrap_or_default();
 
 					if !is_headless {
 						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
