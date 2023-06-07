@@ -32,7 +32,7 @@ use wry::{
 
 pub fn handle_events(
 	event: Event<UserEvent>, webviews: &mut HashMap<WindowId, WebView>,
-	proxy: &EventLoopProxy<UserEvent>, console: ConsolePrinter,
+	_proxy: &EventLoopProxy<UserEvent>, console: ConsolePrinter,
 	_event_loop: &EventLoopWindowTarget<UserEvent>,
 ) {
 	match event {
@@ -128,7 +128,7 @@ pub fn handle_events(
 				Err(error) => console.error(&format!("Error copying file: {}", error)),
 				Ok(_) => {
 					if is_export {
-						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
+						_proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
 					}
 					if let Err(error) = remove_file(&decoded) {
 						console.error(&format!("Error deleting file: {}", error));

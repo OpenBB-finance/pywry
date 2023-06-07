@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.5.10"
+version = "0.5.11"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
@@ -26,3 +26,9 @@ mime_guess = "^2.0"
 urlencoding = "^2.1.2"
 open = "^4.0"
 rand = "^0.8.4"
+
+
+[profile.release]
+strip = true
+lto = "thin"
+opt-level = "s"

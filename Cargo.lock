@@ -1517,7 +1517,7 @@ dependencies = [
 
 [[package]]
 name = "pywry"
-version = "0.5.10"
+version = "0.5.11"
 dependencies = [
  "image",
  "mime_guess",
