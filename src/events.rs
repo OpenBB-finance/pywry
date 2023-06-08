@@ -1,4 +1,5 @@
-use crate::structs::{ConsolePrinter, PlotData, UserEvent};
+use crate::structs::{ConsolePrinter, PlotData, Showable, UserEvent};
+use crate::window::create_new_window;
 
 #[cfg(not(target_os = "macos"))]
 use crate::utils::decode_path;
@@ -12,6 +13,7 @@ use std::{
 #[cfg(not(target_os = "macos"))]
 use std::fs::{copy, create_dir_all, remove_file};
 use urlencoding::decode as urldecode;
+
 use wry::{
 	application::{
 		event::{Event, WindowEvent},
@@ -33,9 +35,30 @@ use wry::{
 pub fn handle_events(
 	event: Event<UserEvent>, webviews: &mut HashMap<WindowId, WebView>,
 	_proxy: &EventLoopProxy<UserEvent>, console: ConsolePrinter,
-	_event_loop: &EventLoopWindowTarget<UserEvent>,
+	_event_loop: &EventLoopWindowTarget<UserEvent>, headless: bool,
 ) {
 	match event {
+		// UserEvent::NewMessageReceived
+		Event::UserEvent(UserEvent::NewMessageReceived(message)) => {
+			console.debug("Received message from Python");
+			match headless {
+				true => {
+					let window_id = webviews.iter_mut().next().unwrap().0;
+					_proxy
+						.send_event(UserEvent::NewPlot(message, *window_id))
+						.unwrap_or_default();
+				}
+				false => {
+					let chart = Showable::new(&message).unwrap_or_default();
+					match create_new_window(chart, &_event_loop, &_proxy, console) {
+						Err(error) => console.error(&format!("Error creating window: {}", error)),
+						Ok(new_window) => {
+							webviews.insert(new_window.0, new_window.1);
+						}
+					};
+				}
+			}
+		}
 		// UserEvent::STDout
 		Event::UserEvent(UserEvent::STDout(result)) => {
 			std::thread::spawn(move || {

@@ -10,7 +10,6 @@ use mime_guess;
 use std::{
 	collections::HashMap,
 	fs::{canonicalize, read},
-	sync::mpsc::{Receiver, Sender},
 };
 
 use wry::{
@@ -31,7 +30,7 @@ use wry::{
 /// * `console` - The ConsolePrinter struct to print log messages to the console
 /// # Returns
 /// * `Result<(WindowId, WebView), String>` - The window id and webview or an error message
-fn create_new_window(
+pub fn create_new_window(
 	to_show: Showable, event_loop: &&EventLoopWindowTarget<UserEvent>,
 	proxy: &EventLoopProxy<UserEvent>, console: ConsolePrinter,
 ) -> Result<(WindowId, WebView), String> {
@@ -161,6 +160,7 @@ fn create_new_window(
 		export_image,
 		&window_icon,
 		Some(false),
+		console,
 	);
 
 	let init_view = match to_show.options.init_script.is_some() {
@@ -185,44 +185,41 @@ fn create_new_window(
 
 /// Starts Main Runtime Loop and creates a new window when a message is received from Python
 /// # Arguments
-/// * `sender` - The sender to send messages from Python to Wry Event Loop
-/// * `receiver` - The receiver Wry uses to receive messages from Python
 /// * `console` - The ConsolePrinter struct to print log messages to the console
 ///
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
-pub fn start_wry(
-	sender: Sender<String>, receiver: Receiver<String>, console: ConsolePrinter,
-) -> Result<(), String> {
+pub fn start_wry(console: ConsolePrinter) -> Result<(), String> {
 	let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
 	let proxy = event_loop.create_proxy();
 	let mut webviews = HashMap::new();
-
-	std::thread::spawn(move || {
-		tokio::runtime::Builder::new_current_thread()
-			.enable_all()
-			.build()
-			.unwrap()
-			.block_on(async move { run_listener(sender.clone()).await.unwrap() })
-	});
+	let mut listener_spawned = false;
 
 	event_loop.run(move |event, event_loop, control_flow| {
-		*control_flow = ControlFlow::Poll;
+		*control_flow = ControlFlow::Wait;
 
-		let response = receiver.try_recv().unwrap_or_default();
+		if !listener_spawned {
+			console.debug("Starting listener thread");
+			let proxy = proxy.clone();
 
-		if !response.is_empty() {
-			console.debug("Received message from Python");
+			std::thread::spawn(move || {
+				tokio::runtime::Builder::new_current_thread()
+					.enable_all()
+					.build()
+					.unwrap()
+					.block_on(async {
+						match run_listener(&proxy).await {
+							Ok(_) => (),
+							Err(error) => {
+								console.debug(&format!("Error: {}", error));
+							}
+						}
+					});
+			});
 
-			let chart = Showable::new(&response).unwrap_or_default();
-			match create_new_window(chart, &event_loop, &proxy, console) {
-				Err(error) => console.error(&format!("Error creating window: {}", error)),
-				Ok(new_window) => {
-					webviews.insert(new_window.0, new_window.1);
-				}
-			};
+			listener_spawned = true;
 		}
 
-		handle_events(event, &mut webviews, &proxy, console.clone(), event_loop);
+		handle_events(event, &mut webviews, &proxy, console.clone(), event_loop, false);
 	});
 }

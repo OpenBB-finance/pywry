@@ -1,4 +1,7 @@
-use crate::{constants, structs::UserEvent};
+use crate::{
+	constants,
+	structs::{ConsolePrinter, UserEvent},
+};
 use std::path::PathBuf;
 
 #[cfg(not(target_os = "windows"))]
@@ -12,7 +15,7 @@ use wry::{
 pub fn add_handlers<'a>(
 	init_view: WebViewBuilder<'a>, proxy: &'a EventLoopProxy<UserEvent>,
 	window_id: WindowId, download_path: String, export_image: String, window_icon: &str,
-	is_headless: Option<bool>,
+	is_headless: Option<bool>, console: ConsolePrinter,
 ) -> WebViewBuilder<'a> {
 	let _is_export = !export_image.is_empty();
 	let is_headless = is_headless.unwrap_or_default();
@@ -66,7 +69,7 @@ pub fn add_handlers<'a>(
 						.send_event(UserEvent::STDout(string[14..].to_string()))
 						.unwrap_or_default();
 
-					if !is_headless {
+					if !is_headless && !console.active {
 						proxy.send_event(UserEvent::CloseWindow(window_id)).unwrap_or_default();
 					}
 				}

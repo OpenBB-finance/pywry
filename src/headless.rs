@@ -9,7 +9,6 @@ use crate::{
 use std::{
 	collections::HashMap,
 	fs::{canonicalize, read},
-	sync::mpsc::{Receiver, Sender},
 };
 
 use wry::{
@@ -119,6 +118,7 @@ fn create_new_window_headless(
 		to_show.export_image,
 		"".to_string().as_str(),
 		Some(true),
+		console,
 	);
 
 	return match init_view.with_devtools(console.active).with_url("wry://localhost") {
@@ -139,32 +139,21 @@ fn create_new_window_headless(
 /// We return a dictionary with the key `result` and base64 string encoded image.
 ///
 /// # Arguments
-/// * `sender` - The sender to send messages from Python to Wry Event Loop
-/// * `receiver` - The receiver Wry uses to receive messages from Python
 /// * `console` - The ConsolePrinter struct to print log messages to the console
 ///
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
-pub fn start_headless(
-	sender: Sender<String>, receiver: Receiver<String>, console: ConsolePrinter,
-) -> Result<(), String> {
+pub fn start_headless(console: ConsolePrinter) -> Result<(), String> {
 	let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
 	let proxy = event_loop.create_proxy();
 	let mut webviews = HashMap::new();
-	let mut init_headless = false;
-
-	std::thread::spawn(move || {
-		tokio::runtime::Builder::new_current_thread()
-			.enable_all()
-			.build()
-			.unwrap()
-			.block_on(async move { run_listener(sender.clone()).await.unwrap() })
-	});
+	let mut listener_spawned = false;
 
 	event_loop.run(move |event, event_loop, control_flow| {
-		*control_flow = ControlFlow::Poll;
-		if !init_headless {
-			console.debug("Received response");
+		*control_flow = ControlFlow::Wait;
+
+		if !listener_spawned {
+			console.debug("Starting listener thread");
 
 			let chart = ShowableHeadless::new("").unwrap_or_default();
 			match create_new_window_headless(chart, &event_loop, &proxy, console) {
@@ -175,16 +164,25 @@ pub fn start_headless(
 				}
 			};
 
-			init_headless = true;
+			let proxy = proxy.clone();
+			std::thread::spawn(move || {
+				tokio::runtime::Builder::new_current_thread()
+					.enable_all()
+					.build()
+					.unwrap()
+					.block_on(async {
+						match run_listener(&proxy).await {
+							Ok(_) => (),
+							Err(error) => {
+								console.debug(&format!("Error: {}", error));
+							}
+						}
+					});
+			});
+
+			listener_spawned = true;
 		}
 
-		let response = receiver.try_recv().unwrap_or_default();
-
-		if !response.is_empty() && init_headless {
-			let window_id = webviews.iter_mut().next().unwrap().0;
-			proxy.send_event(UserEvent::NewPlot(response, *window_id)).unwrap_or_default();
-		}
-
-		handle_events(event, &mut webviews, &proxy, console.clone(), event_loop);
+		handle_events(event, &mut webviews, &proxy, console.clone(), event_loop, true);
 	});
 }
