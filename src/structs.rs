@@ -102,6 +102,7 @@ pub enum UserEvent {
 	STDout(String),
 	#[cfg(not(target_os = "windows"))]
 	NewWindow(String, Option<Icon>),
+	NewMessageReceived(String),
 }
 
 pub struct WebViewOptions {
