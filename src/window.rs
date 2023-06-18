@@ -122,6 +122,7 @@ pub fn create_new_window(
 			Response::builder()
 				.header(CONTENT_TYPE, mimetype)
 				.header("Access-Control-Allow-Origin", "null")
+				.header("Accept-Encoding", "gzip, compress, br, deflate")
 				.body(content)
 				.map_err(Into::into)
 		}),
