@@ -96,6 +96,35 @@ pub const PYWRY_WINDOW_SCRIPT: &str = "
 			window.ipc.postMessage('#DEVTOOLS');
 		},
 	};
+
+	// Add keyboard shortcuts for copy and paste (fixes Mac OS)
+	window.addEventListener('keydown', function (e) {
+		try {
+			if (e.key.toLowerCase() === 'c' && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				const text = window.getSelection().toString();
+				if (text) {
+					navigator.clipboard.writeText(text);
+					console.log(`copied: ${text}`);
+				}
+			} else if (e.key.toLowerCase() === 'v' && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				navigator.clipboard.readText().then((text) => {
+					const element = e.target;
+					if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+						const start = element.selectionStart;
+						const end = element.selectionEnd;
+						const value = element.value;
+						element.value = value.slice(0, start) + text + value.slice(end);
+						element.selectionStart = element.selectionEnd = start + text.length;
+						console.log(`pasted: ${text}`);
+					}
+				});
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	});
 ";
 
 /// Plotly script that is injected into the HTML to render the plot
