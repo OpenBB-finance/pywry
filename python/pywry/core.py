@@ -209,12 +209,6 @@ class PyWry:
             print(message)
 
     def check_backend(self):
-        try:
-            self.loop.run_until_complete(self.async_check_backend())
-        except Exception:
-            self.print_debug()
-
-    async def async_check_backend(self):
         """Check if the backend is running."""
 
         if self.max_retries == 0:
