@@ -110,15 +110,8 @@ pub const PYWRY_WINDOW_SCRIPT: &str = "
 			} else if (e.key.toLowerCase() === 'v' && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
 				navigator.clipboard.readText().then((text) => {
-					const element = e.target;
-					if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-						const start = element.selectionStart;
-						const end = element.selectionEnd;
-						const value = element.value;
-						element.value = value.slice(0, start) + text + value.slice(end);
-						element.selectionStart = element.selectionEnd = start + text.length;
-						console.log(`pasted: ${text}`);
-					}
+					document.execCommand('insertText', false, text);
+					console.log(`pasted: ${text}`);
 				});
 			}
 		} catch (error) {
