@@ -86,9 +86,14 @@ fn create_new_window_headless(
 				.map(|mime| mime.to_string())
 				.unwrap_or_else(|| "text/plain".to_string());
 
+			#[cfg(target_os = "windows")]
+			let headers = "https://wry.localhost".to_string();
+			#[cfg(not(target_os = "windows"))]
+			let headers = "wry://localhost".to_string();
+
 			Response::builder()
 				.header(CONTENT_TYPE, mimetype)
-				.header("Access-Control-Allow-Origin", "null")
+				.header("Access-Control-Allow-Origin", headers)
 				.header("Accept-Encoding", "gzip, compress, br, deflate")
 				.body(content)
 				.map_err(Into::into)
