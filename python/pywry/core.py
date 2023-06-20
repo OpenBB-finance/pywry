@@ -96,6 +96,8 @@ class PyWry:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
+        self.loop_policy()
+
         self.runner: Optional[asyncio.subprocess.Process] = None
         self.thread: Optional[threading.Thread] = None
         self.subprocess_loop: Optional[asyncio.AbstractEventLoop] = None
@@ -135,7 +137,7 @@ class PyWry:
         height : int, optional
             Height of the window, by default 600
         """
-        self.loop.run_until_complete(self.check_backend())
+        self.check_backend()
         kwargs.update(
             dict(
                 html=html, json_data=json_data, title=title, width=width, height=height
@@ -206,7 +208,7 @@ class PyWry:
         if message and not re.search(IGNORE_REGEX, message, re.IGNORECASE):
             print(message)
 
-    async def check_backend(self):
+    def check_backend(self):
         """Check if the backend is running."""
 
         if self.max_retries == 0:
@@ -312,11 +314,17 @@ class PyWry:
         except Exception as proc_err:
             await self.exception_handler(proc_err)
 
+    def loop_policy(self):
+        """Set the loop policy."""
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
     async def run_backend(self):
         """Runs the backend and starts the main loop."""
         await self.handle_start()
         with self.lock:
             self.subprocess_loop = asyncio.get_running_loop()
+            self.loop_policy()
 
         # We need to create a new task for each reader, otherwise
         # the loop will not be able to run the main task
@@ -409,7 +417,7 @@ class PyWry:
 
         if headless:
             self.loop.run_until_complete(asyncio.sleep(3))
-        self.loop.run_until_complete(self.check_backend())
+        self.check_backend()
 
     def close(self):
         """Close the backend."""
@@ -425,14 +433,17 @@ class PyWry:
                 pass
 
     async def create_subprocess(self, cmd: Union[str, List[str]], **kwargs):
-        if self.shell:
-            if isinstance(cmd, list):
-                cmd = " ".join(cmd)
+        try:
+            if self.shell:
+                if isinstance(cmd, list):
+                    cmd = " ".join(cmd)
 
-            return await asyncio.create_subprocess_shell(
-                cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
+                return await asyncio.create_subprocess_shell(
+                    cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
+                )
+
+            return await asyncio.create_subprocess_exec(
+                *cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
             )
-
-        return await asyncio.create_subprocess_exec(
-            *cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, limit=2**64, **kwargs
-        )
+        except NotImplementedError as err:
+            await self.exception_handler(err)

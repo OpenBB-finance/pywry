@@ -1,6 +1,6 @@
 [package]
 name = "pywry"
-version = "0.5.12"
+version = "0.5.13"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
@@ -17,7 +17,7 @@ pyo3 = { version = "^0.19.0", features = [
     "extension-module",
     "generate-import-lib",
 ] }
-wry = { version = "^0.28", features = ["devtools"] }
+wry = { version = "^0.29", features = ["devtools"] }
 image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread", "full"] }
 serde = { version = "^1.0", features = ["derive"] }
