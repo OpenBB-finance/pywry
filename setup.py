@@ -12,7 +12,6 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools-rust"])
     from setuptools_rust import Binding, RustExtension
 
-
 if sys.platform == "linux":
     os.environ["RUSTFLAGS"] = (
         "-C link-args=-Wl,-rpath,$ORIGIN/../lib "
@@ -43,7 +42,7 @@ setup(
             "Cargo.toml",
             binding=Binding.PyO3,
             debug=False,
-            args=["--release", "--no-default-features"],
+            args=["--no-default-features"],
         )
     ],
     zip_safe=False,
