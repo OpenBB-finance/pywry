@@ -7,6 +7,12 @@ use crate::{
 	utils::{decode_path, get_icon},
 };
 use mime_guess;
+
+#[cfg(target_os = "windows")]
+use simple_home_dir::*;
+#[cfg(target_os = "windows")]
+use std::{env::temp_dir, path::PathBuf};
+
 use std::{
 	collections::HashMap,
 	fs::{canonicalize, read},
@@ -21,6 +27,12 @@ use wry::{
 	http::{header::CONTENT_TYPE, Response},
 	webview::{WebView, WebViewBuilder},
 };
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+use wry::application::event_loop::EventLoopBuilder;
+
+#[cfg(target_os = "windows")]
+use wry::webview::WebContext;
 
 /// Creates a new window and returns the window id and webview
 /// # Arguments
@@ -93,8 +105,16 @@ pub fn create_new_window(
 		Err(error2) => return Err(error2.to_string()),
 		Ok(item) => item,
 	};
+
 	let protocol =
 		webview.with_background_color(background_color).with_hotkeys_zoom(true);
+
+	#[cfg(target_os = "windows")]
+	let mut cache_directory = WebContext::new(Some(PathBuf::from(
+		home_dir().unwrap_or_else(|| temp_dir()).join(".cache").join("wry"),
+	)));
+	#[cfg(target_os = "windows")]
+	let protocol = protocol.with_web_context(&mut cache_directory);
 
 	let protocol = match to_show.options.url.starts_with("wry://") {
 		true => protocol.with_custom_protocol("wry".into(), move |request| {
@@ -196,7 +216,12 @@ pub fn create_new_window(
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
 pub fn start_wry(console: ConsolePrinter) -> Result<(), String> {
+	#[cfg(any(target_os = "windows", target_os = "macos"))]
+	let event_loop: EventLoop<UserEvent> =
+		EventLoopBuilder::<UserEvent>::with_user_event().build();
+	#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 	let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
+
 	let proxy = event_loop.create_proxy();
 	let mut webviews = HashMap::new();
 	let mut listener_spawned = false;

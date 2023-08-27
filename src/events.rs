@@ -211,7 +211,9 @@ pub fn handle_events(
 		#[cfg(not(target_os = "windows"))]
 		Event::UserEvent(UserEvent::NewWindow(uri, window_icon)) => {
 			console.debug(&format!("New Window Requested: {}", uri));
-			match uri.starts_with("http://") || uri.starts_with("https://") {
+			match (uri.starts_with("http://") || uri.starts_with("https://"))
+				&& !uri.starts_with("https://ogs.google.com")
+			{
 				true => {
 					let pre_window = WindowBuilder::new()
 						.with_title(uri.to_string())

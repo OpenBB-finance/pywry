@@ -19,6 +19,10 @@ pub fn add_handlers<'a>(
 ) -> WebViewBuilder<'a> {
 	let _is_export = !export_image.is_empty();
 	let is_headless = is_headless.unwrap_or_default();
+	#[cfg(target_os = "macos")]
+	let maxos_script = constants::MACOS_COPY_PASTE_SCRIPT;
+	#[cfg(not(target_os = "macos"))]
+	let maxos_script = "";
 
 	// we add a download handler, if export_image is set it takes precedence over download_path
 	return init_view
@@ -133,5 +137,6 @@ pub fn add_handlers<'a>(
 		})
 		.with_initialization_script(constants::BLOBINIT_SCRIPT)
 		.with_initialization_script(constants::PYWRY_WINDOW_SCRIPT)
-		.with_initialization_script(constants::PLOTLY_RENDER_JS);
+		.with_initialization_script(constants::PLOTLY_RENDER_JS)
+		.with_initialization_script(maxos_script);
 }
