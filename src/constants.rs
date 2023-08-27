@@ -96,28 +96,24 @@ pub const PYWRY_WINDOW_SCRIPT: &str = "
 			window.ipc.postMessage('#DEVTOOLS');
 		},
 	};
+";
 
-	// Add keyboard shortcuts for copy and paste (fixes Mac OS)
-	window.addEventListener('keydown', function (e) {
-		try {
-			if (e.key.toLowerCase() === 'c' && (e.ctrlKey || e.metaKey)) {
-				e.preventDefault();
-				const text = window.getSelection().toString();
-				if (text) {
-					navigator.clipboard.writeText(text);
-					console.log(`copied: ${text}`);
-				}
-			} else if (e.key.toLowerCase() === 'v' && (e.ctrlKey || e.metaKey)) {
-				e.preventDefault();
-				navigator.clipboard.readText().then((text) => {
-					document.execCommand('insertText', false, text);
-					console.log(`pasted: ${text}`);
-				});
+// Add keyboard shortcuts for copy and paste (fixes Mac OS)
+pub const MACOS_COPY_PASTE_SCRIPT: &str = "
+	try {
+		window.addEventListener('keypress', (event) => {
+			if (event.metaKey && event.key === 'c') {
+				document.execCommand('copy');
+				event.preventDefault();
 			}
-		} catch (error) {
-			console.log(error);
-		}
-	});
+			if (event.metaKey && event.key === 'v') {
+				document.execCommand('paste');
+				event.preventDefault();
+			}
+		});
+	} catch (error) {
+		console.log(error);
+	}
 ";
 
 /// Plotly script that is injected into the HTML to render the plot

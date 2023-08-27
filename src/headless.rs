@@ -21,6 +21,9 @@ use wry::{
 	webview::{WebView, WebViewBuilder},
 };
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+use wry::application::event_loop::EventLoopBuilder;
+
 /// Creates a new headless window and returns the window id and webview
 /// # Arguments
 /// * `to_show` - The Showable struct that contains the information to show
@@ -150,7 +153,12 @@ fn create_new_window_headless(
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
 pub fn start_headless(console: ConsolePrinter) -> Result<(), String> {
+	#[cfg(any(target_os = "windows", target_os = "macos"))]
+	let event_loop: EventLoop<UserEvent> =
+		EventLoopBuilder::<UserEvent>::with_user_event().build();
+	#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 	let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
+
 	let proxy = event_loop.create_proxy();
 	let mut webviews = HashMap::new();
 	let mut listener_spawned = false;
