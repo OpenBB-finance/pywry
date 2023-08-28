@@ -8,7 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [{ version: "3.10", abi: "cp310-cp310" }]
+        python:
+          [
+            { version: "3.8", abi: "cp38-cp38" },
+            { version: "3.9", abi: "cp39-cp39" },
+            { version: "3.10", abi: "cp310-cp310" },
+            { version: "3.11", abi: "cp311-cp311" },
+          ]
 
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
@@ -41,10 +47,10 @@ jobs:
       - name: Update version in Cargo-linux.toml and pyproject.toml
         run: |
           sed -i '2s/name = ".*"/name = "pywry-nightly"/' Cargo-linux.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d%M)\"/" Cargo-linux.toml
+          sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo-linux.toml
           head Cargo-linux.toml
           sed -i '2s/name = ".*"/name = "pywry-nightly"/' pyproject.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d%M)\"/" pyproject.toml
+          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
           head pyproject.toml
           sed -i 's/pip install pywry/pip install pywry-nightly/' README.md
 
@@ -83,10 +89,10 @@ jobs:
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
           (Get-Content Cargo.toml) -replace '(?m)^name = ".*" \# Package name', 'name = "pywry-nightly"' | Set-Content Cargo.toml
-          (Get-Content Cargo.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2-dev$(Get-Date -Format "yyyyMMddmm")`$3" | Set-Content Cargo.toml
+          (Get-Content Cargo.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2-dev$(Get-Date -Format "yyyyMMdd")`$3" | Set-Content Cargo.toml
           Get-Content Cargo.toml -Head 4
           (Get-Content pyproject.toml) -replace '(?m)^name = ".*"', 'name = "pywry-nightly"' | Set-Content pyproject.toml
-          (Get-Content pyproject.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2.dev$(Get-Date -Format "yyyyMMddmm")`$3" | Set-Content pyproject.toml
+          (Get-Content pyproject.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2.dev$(Get-Date -Format "yyyyMMdd")`$3" | Set-Content pyproject.toml
           Get-Content pyproject.toml -Head 4
           (Get-Content README.md) -replace 'pip install pywry', 'pip install pywry-nightly' | Set-Content README.md
 
@@ -107,10 +113,10 @@ jobs:
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
           sed -i '' '2s/name = ".*"/name = "pywry-nightly"/' Cargo.toml
-          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d%M)\"/" Cargo.toml
+          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo.toml
           head Cargo.toml
           sed -i '' '2s/name = ".*"/name = "pywry-nightly"/' pyproject.toml
-          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d%M)\"/" pyproject.toml
+          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
           head pyproject.toml
           sed -i '' 's/pip install pywry/pip install pywry-nightly/' README.md
 
