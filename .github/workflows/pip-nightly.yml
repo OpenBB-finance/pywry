@@ -8,20 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [
-            { version: "3.8", abi: "cp38-cp38" },
-            { version: "3.9", abi: "cp39-cp39" },
-            { version: "3.10", abi: "cp310-cp310" },
-            { version: "3.11", abi: "cp311-cp311" },
-          ]
+        python: [{ version: "3.10", abi: "cp310-cp310" }]
 
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
       options: --user root
 
     steps:
-      - uses: actions/checkout@v1
-
       # Insert steps here to install you other dependencies.
       # Note that you're running inside of AlmaLinux 8, not ubuntu
       - name: Setup necessary packages
@@ -43,7 +36,7 @@ jobs:
 
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
       - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Update version in Cargo-linux.toml and pyproject.toml
         run: |
@@ -72,6 +65,7 @@ jobs:
           for wheel in wheels/pywry*.whl; do
               auditwheel repair "${wheel}" --plat manylinux_2_28_x86_64 -w dist
           done
+
       # Try to install and test importing the package
       - name: Test Build
         run: |
@@ -82,7 +76,7 @@ jobs:
           done
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
@@ -94,7 +88,7 @@ jobs:
 
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
-          (Get-Content Cargo.toml) -replace '(?m)^name = ".*"', 'name = "pywry-nightly"' | Set-Content Cargo.toml
+          (Get-Content Cargo.toml) -replace '(?m)^name = ".*" \# Package name', 'name = "pywry-nightly"' | Set-Content Cargo.toml
           (Get-Content Cargo.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2-dev$(Get-Date -Format "yyyyMMddmm")`$3" | Set-Content Cargo.toml
           Get-Content Cargo.toml -Head 4
           (Get-Content pyproject.toml) -replace '(?m)^name = ".*"', 'name = "pywry-nightly"' | Set-Content pyproject.toml

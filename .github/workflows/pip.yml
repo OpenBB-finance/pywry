@@ -21,7 +21,7 @@ jobs:
       options: --user root
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       # Insert steps here to install you other dependencies.
       # Note that you're running inside of AlmaLinux 8, not ubuntu
@@ -69,7 +69,7 @@ jobs:
           done
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
