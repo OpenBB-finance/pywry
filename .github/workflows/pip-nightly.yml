@@ -92,11 +92,11 @@ jobs:
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
           (Get-Content Cargo.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content Cargo.toml
-          (Get-Content Cargo.toml) -replace '(?<=\[package\]\nname = "pywry-nightly"\nversion = ").*(?="\n)', "$(Get-Content Cargo.toml)[3].Substring(11, 5) + '-dev$(Get-Date -Format 'yyyyMMdd')'" | Set-Content Cargo.toml
-          Get-Content Cargo.toml
+          (Get-Content Cargo.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2-dev$(Get-Date -Format "yyyyMMdd")`$3" | Set-Content Cargo.toml
+          Get-Content Cargo.toml -Head 4
           (Get-Content pyproject.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content pyproject.toml
-          (Get-Content pyproject.toml) -replace '(?<=\[package\]\nname = "pywry-nightly"\nversion = ").*(?="\n)', "$(Get-Content pyproject.toml)[3].Substring(11, 5) + '.dev$(Get-Date -Format 'yyyyMMdd')'" | Set-Content pyproject.toml
-          Get-Content pyproject.toml
+          (Get-Content pyproject.toml) -replace '(?m)^(version = ")(.*)(")', "`$1`$2.dev$(Get-Date -Format "yyyyMMdd")`$3" | Set-Content pyproject.toml
+          Get-Content pyproject.toml -Head 4
           (Get-Content README.md) -replace 'pip install pywry', 'pip install pywry-nightly' | Set-Content README.md
 
       - uses: PyO3/maturin-action@v1
