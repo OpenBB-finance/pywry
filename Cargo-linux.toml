@@ -25,4 +25,3 @@ simple-home-dir = "0.1.4"
 
 
 [profile.release]
-target = "manylinux_2_28_x86_64"
