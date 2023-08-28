@@ -3,86 +3,86 @@ name: Pip Nightly
 on: workflow_dispatch
 
 jobs:
-  # manylinux_2_28:
-  #   name: Build manylinux_2_28 wheels
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       python:
-  #         [
-  #           { version: "3.8", abi: "cp38-cp38" },
-  #           { version: "3.9", abi: "cp39-cp39" },
-  #           { version: "3.10", abi: "cp310-cp310" },
-  #           { version: "3.11", abi: "cp311-cp311" },
-  #         ]
+  manylinux_2_28:
+    name: Build manylinux_2_28 wheels
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python:
+          [
+            { version: "3.8", abi: "cp38-cp38" },
+            { version: "3.9", abi: "cp39-cp39" },
+            { version: "3.10", abi: "cp310-cp310" },
+            { version: "3.11", abi: "cp311-cp311" },
+          ]
 
-  #   container:
-  #     image: quay.io/pypa/manylinux_2_28_x86_64
-  #     options: --user root
+    container:
+      image: quay.io/pypa/manylinux_2_28_x86_64
+      options: --user root
 
-  #   steps:
-  #     - uses: actions/checkout@v1
+    steps:
+      - uses: actions/checkout@v1
 
-  #     # Insert steps here to install you other dependencies.
-  #     # Note that you're running inside of AlmaLinux 8, not ubuntu
-  #     - name: Setup necessary packages
-  #       run: |
-  #         dnf update -y
-  #         dnf install -y \
-  #             gtk3-devel \
-  #             webkit2gtk3-devel \
-  #             openssl-devel \
-  #             curl \
-  #             wget \
-  #             squashfs-tools \
-  #             make \
-  #             file
+      # Insert steps here to install you other dependencies.
+      # Note that you're running inside of AlmaLinux 8, not ubuntu
+      - name: Setup necessary packages
+        run: |
+          dnf update -y
+          dnf install -y \
+              gtk3-devel \
+              webkit2gtk3-devel \
+              openssl-devel \
+              curl \
+              wget \
+              squashfs-tools \
+              make \
+              file
 
-  #     - name: Setup dev tools
-  #       run: |
-  #         yum groupinstall -y "Development Tools"
+      - name: Setup dev tools
+        run: |
+          yum groupinstall -y "Development Tools"
 
-  #     - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
-  #     - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
-  #     - uses: actions/checkout@v2
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
+      - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
+      - uses: actions/checkout@v2
 
-  #     - name: Update version in Cargo-linux.toml and pyproject.toml
-  #       run: |
-  #         sed -i 's/name = ".*"/name = "pywry-nightly"/' Cargo-linux.toml
-  #         sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo-linux.toml
-  #         head Cargo-linux.toml
-  #         sed -i 's/name = ".*"/name = "pywry-nightly"/' pyproject.toml
-  #         sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
-  #         head pyproject.toml
-  #         sed -i 's/pip install pywry/pip install pywry-nightly/' README.md
+      - name: Update version in Cargo-linux.toml and pyproject.toml
+        run: |
+          sed -i 's/name = ".*"/name = "pywry-nightly"/' Cargo-linux.toml
+          sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo-linux.toml
+          head Cargo-linux.toml
+          sed -i 's/name = ".*"/name = "pywry-nightly"/' pyproject.toml
+          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
+          head pyproject.toml
+          sed -i 's/pip install pywry/pip install pywry-nightly/' README.md
 
-  #     # We remove the Cargo.toml and Cargo.lock files and replace them with
-  #     # Cargo-linux.toml and Cargo-linux.lock files, which are configured to build for linux.
-  #     - name: Build
-  #       run: |
-  #         source $HOME/.cargo/env
-  #         rm Cargo.toml && rm Cargo.lock
-  #         mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
-  #         for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-  #           "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml
-  #           "${PYBIN}/pip" install maturin
-  #           "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release
-  #         done
+      # We remove the Cargo.toml and Cargo.lock files and replace them with
+      # Cargo-linux.toml and Cargo-linux.lock files, which are configured to build for linux.
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          rm Cargo.toml && rm Cargo.lock
+          mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
+          for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
+            "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release
+          done
 
-  #     # Try to install and test importing the package
-  #     - name: Test Build
-  #       run: |
-  #         source $HOME/.cargo/env
-  #         for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-  #           "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
-  #           "${PYBIN}/python" -c 'from pywry import PyWry; PyWry(); import platform; print(platform.python_version());'
-  #         done
+      # Try to install and test importing the package
+      - name: Test Build
+        run: |
+          source $HOME/.cargo/env
+          for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
+            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
+            "${PYBIN}/python" -c 'from pywry import PyWry; PyWry(); import platform; print(platform.python_version());'
+          done
 
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: wheels
-  #         path: dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
 
   windows:
     runs-on: windows-latest
@@ -162,16 +162,15 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write
-    needs: [macos, windows, sdist]
+    needs: [macos, windows, manylinux_2_28, sdist]
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.NIGHTLY_PYPI_API_TOKEN }}
         with:
-          dist: dist/*
-          skip_existing: true
+          command: upload
+          args: --skip-existing *

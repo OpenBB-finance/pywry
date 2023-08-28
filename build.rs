@@ -14,8 +14,13 @@ fn main() {
 from .core import PyWry  # noqa: F401"
 		.to_string();
 
-	fs::write(&init_path, format!("__version__ = \"{}\"\n\n{}", version, imports)).unwrap();
+	fs::write(&init_path, format!("__version__ = \"{}\"\n\n{}\n", version, imports))
+		.unwrap();
 
 	println!("cargo:rerun-if-changed=build.rs");
 	println!("cargo:rerun-if-changed=Cargo.toml");
+
+	if cfg!(target_os = "linux") {
+		println!("cargo:rustc-link-search=native=../pywry.libs");
+	}
 }
