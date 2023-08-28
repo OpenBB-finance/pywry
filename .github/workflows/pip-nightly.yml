@@ -91,13 +91,13 @@ jobs:
 
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
-          sed -i 's/name = ".*"/name = "pywry-nightly"/' Cargo.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" Cargo.toml
-          head Cargo.toml
-          sed -i 's/name = ".*"/name = "pywry-nightly"/' pyproject.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
-          head pyproject.toml
-          sed -i 's/pip install pywry/pip install pywry-nightly/' README.md
+          (Get-Content Cargo.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content Cargo.toml
+          (Get-Content Cargo.toml) -replace '(?<=version = ").*(?=")', "$(Get-Date -Format 'yyyy-MM-dd')-dev" | Set-Content Cargo.toml
+          Get-Content Cargo.toml
+          (Get-Content pyproject.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content pyproject.toml
+          (Get-Content pyproject.toml) -replace '(?<=version = ").*(?=")', "$(Get-Date -Format 'yyyy-MM-dd').dev" | Set-Content pyproject.toml
+          Get-Content pyproject.toml
+          (Get-Content README.md) -replace 'pip install pywry', 'pip install pywry-nightly' | Set-Content README.md
 
       - uses: PyO3/maturin-action@v1
         with:
@@ -115,13 +115,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
-          sed -i 's/name = ".*"/name = "pywry-nightly"/' Cargo.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo.toml
+          sed -i '' 's/name = ".*"/name = "pywry-nightly"/' Cargo.toml
+          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo.toml
           head Cargo.toml
-          sed -i 's/name = ".*"/name = "pywry-nightly"/' pyproject.toml
-          sed -i "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
+          sed -i '' 's/name = ".*"/name = "pywry-nightly"/' pyproject.toml
+          sed -i '' "3s/version = \"\(.*\)\"/version = \"\1.dev$(date +%Y%m%d)\"/" pyproject.toml
           head pyproject.toml
-          sed -i 's/pip install pywry/pip install pywry-nightly/' README.md
+          sed -i '' 's/pip install pywry/pip install pywry-nightly/' README.md
 
       - uses: PyO3/maturin-action@v1
         with:
