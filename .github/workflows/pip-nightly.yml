@@ -92,10 +92,10 @@ jobs:
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
           (Get-Content Cargo.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content Cargo.toml
-          (Get-Content Cargo.toml)[2] -replace 'version = "(.*)"', 'version = "$1-dev$(Get-Date -Format yyyyMMdd)"' | Set-Content Cargo.toml
+          (Get-Content Cargo.toml)[2] -replace 'version = "(.*)"', 'version = "$1-dev" + (Get-Date -Format "yyyyMMdd")' | Set-Content Cargo.toml
           Get-Content Cargo.toml
           (Get-Content pyproject.toml) -replace 'name = ".*"', 'name = "pywry-nightly"' | Set-Content pyproject.toml
-          (Get-Content pyproject.toml)[2] -replace 'version = "(.*)"', 'version = "$1.dev$(Get-Date -Format yyyyMMdd)"' | Set-Content pyproject.toml
+          (Get-Content pyproject.toml)[2] -replace 'version = "(.*)"', 'version = "$1.dev" + (Get-Date -Format "yyyyMMdd")' | Set-Content pyproject.toml
           Get-Content pyproject.toml
           (Get-Content README.md) -replace 'pip install pywry', 'pip install pywry-nightly' | Set-Content README.md
 
