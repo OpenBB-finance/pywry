@@ -21,8 +21,6 @@ jobs:
       options: --user root
 
     steps:
-      - uses: actions/checkout@v3
-
       # Insert steps here to install you other dependencies.
       # Note that you're running inside of AlmaLinux 8, not ubuntu
       - name: Setup necessary packages
@@ -44,7 +42,7 @@ jobs:
 
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
       - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # We remove the Cargo.toml and Cargo.lock files and replace them with
       # Cargo-linux.toml and Cargo-linux.lock files, which are configured to build for linux.
@@ -54,8 +52,7 @@ jobs:
           rm Cargo.toml && rm Cargo.lock
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-            "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml
-            "${PYBIN}/pip" install maturin
+            "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml maturin
             "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
           done
 
@@ -64,7 +61,7 @@ jobs:
         run: |
           source $HOME/.cargo/env
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-            "${PYBIN}/pip" install --force-reinstall dist/pywry-*.whl
+            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
             "${PYBIN}/python" -c 'from pywry import PyWry; PyWry(); import platform; print(platform.python_version());'
           done
 
