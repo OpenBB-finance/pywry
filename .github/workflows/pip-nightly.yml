@@ -57,13 +57,7 @@ jobs:
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml maturin
-            "${PYBIN}/maturin" build -m Cargo.toml -o wheels -i "${PYBIN}/python" --release --manylinux off
-          done
-
-      - name: Auditwheel repair
-        run: |
-          for wheel in wheels/pywry*.whl; do
-              auditwheel repair "${wheel}" --plat manylinux_2_28_x86_64 -w dist
+            "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
           done
 
       # Try to install and test importing the package
@@ -71,7 +65,7 @@ jobs:
         run: |
           source $HOME/.cargo/env
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
+            "${PYBIN}/pip" install --force-reinstall dist/pywry-*.whl
             "${PYBIN}/python" -c 'from pywry import PyWry; PyWry(); import platform; print(platform.python_version());'
           done
 

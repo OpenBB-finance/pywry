@@ -56,7 +56,7 @@ jobs:
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" build -m Cargo.toml -o dist -i "${PYBIN}/python" --release
+            "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
           done
 
       # Try to install and test importing the package
