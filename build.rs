@@ -19,8 +19,4 @@ from .core import PyWry  # noqa: F401"
 
 	println!("cargo:rerun-if-changed=build.rs");
 	println!("cargo:rerun-if-changed=Cargo.toml");
-
-	if cfg!(target_os = "linux") {
-		println!("cargo:rustc-link-search=native=../pywry.libs");
-	}
 }

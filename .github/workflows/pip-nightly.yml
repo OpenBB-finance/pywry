@@ -65,7 +65,7 @@ jobs:
         run: |
           source $HOME/.cargo/env
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
-            "${PYBIN}/pip" install --force-reinstall dist/pywry-*.whl
+            "${PYBIN}/pip" install --force-reinstall dist/pywry*.whl
             "${PYBIN}/python" -c 'from pywry import PyWry; PyWry(); import platform; print(platform.python_version());'
           done
 
