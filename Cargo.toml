@@ -25,5 +25,3 @@ simple-home-dir = "0.1.4"
 
 
 [profile.release]
-lto = "thin"
-opt-level = "s"
