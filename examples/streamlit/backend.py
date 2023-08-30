@@ -50,7 +50,7 @@ class Backend(PyWry):
         height : int, optional
             Height of the window, by default 800
         """
-        self.loop.run_until_complete(self.check_backend())
+        self.check_backend()
         script = f"""
         <script>
             window.location.replace("{url}");
@@ -75,11 +75,6 @@ class Backend(PyWry):
         """
         if self.isatty:
             super().start(debug)
-
-    async def check_backend(self):
-        """Override to check if isatty."""
-        if self.isatty:
-            await super().check_backend()
 
 
 def pywry_backend(daemon: bool = True) -> Backend:
