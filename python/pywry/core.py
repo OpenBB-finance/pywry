@@ -411,8 +411,6 @@ class PyWry:
                 self.thread.join()
             self.thread = thread
 
-        if headless:
-            self.loop.run_until_complete(asyncio.sleep(3))
         self.check_backend()
 
     def close(self):
