@@ -1,8 +1,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc, clippy::must_use_candidate)]
-
-use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
+use std::env;
 
 pub mod constants;
 pub mod events;
@@ -13,47 +11,54 @@ pub mod structs;
 pub mod utils;
 pub mod window;
 
-#[pyclass]
-struct WindowManager {
-	#[pyo3(get, set)]
-	debug: bool,
+pub struct WindowManager {
+	pub debug: bool,
 }
 
-#[pymethods]
 impl WindowManager {
-	#[new]
-	fn new() -> Self {
+	pub fn new() -> Self {
 		Self { debug: false }
 	}
 
-	fn start(&self, debug: bool) -> PyResult<()> {
+	pub fn start(&self, debug: bool) -> Result<(), String> {
 		let console_printer = structs::ConsolePrinter::new(debug);
 		match window::start_wry(console_printer) {
 			Err(error) => {
 				let error_str = format!("Error starting wry server: {}", error);
-				Err(PyValueError::new_err(error_str))
+				Err(error_str)
 			}
 			Ok(_) => Ok(()),
 		}
 	}
 
-	fn start_headless(&self, debug: bool) -> PyResult<()> {
+	pub fn start_headless(&self, debug: bool) -> Result<(), String> {
 		let console_printer = structs::ConsolePrinter::new(debug);
 		match headless::start_headless(console_printer) {
 			Err(error) => {
 				let error_str = format!("Error starting headless server: {}", error);
-				Err(PyValueError::new_err(error_str))
+				Err(error_str)
 			}
 			Ok(_) => Ok(()),
 		}
 	}
 }
 
-/// # PyWry Web Viewer
-/// Easily create HTML webviewers in python utilizing the [wry](https://github.com/tauri-apps/wry) library.
-#[pymodule]
-fn pywry(_py: Python, m: &PyModule) -> PyResult<()> {
-	m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-	m.add_class::<WindowManager>()?;
-	Ok(())
+/// Starts the main runtime loop
+pub fn main() -> Result<(), String> {
+	let args: Vec<String> = env::args().collect();
+	let debug = args.contains(&"--debug".to_string());
+	let headless = args.contains(&"--headless".to_string());
+
+	let wm = WindowManager::new();
+
+	match headless {
+		true => match wm.start_headless(debug) {
+			Err(error) => Err(error),
+			Ok(_) => Ok(()),
+		},
+		false => match wm.start(debug) {
+			Err(error) => Err(error),
+			Ok(_) => Ok(()),
+		},
+	}
 }

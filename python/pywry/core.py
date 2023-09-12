@@ -14,7 +14,7 @@ from typing import List, Optional, Union
 
 import setproctitle
 
-from pywry import pywry
+import pywry
 
 __all__ = ["PyWry", "BackendFailedToStart"]
 
@@ -72,7 +72,6 @@ class PyWry:
     outgoing: List[str] = []
     init_engine: List[str] = []
     recv: QueueT = Queue()
-    base: pywry.WindowManager = pywry.WindowManager()
 
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         "Makes the class a 'singleton' by only allowing one instance at a time"
@@ -238,22 +237,19 @@ class PyWry:
                     self._is_closed.set()
 
             kwargs = dict()
-            cmd = [sys.executable, "-m", "pywry.backend", "--start"] + self._bootargs
+            pywry_path = pywry.find_pywry_bin()
+            cmd = [pywry_path] + self._bootargs
 
             # For pyinstaller builds we need to get the path to the executable
             if hasattr(sys, "frozen"):
-                # pylint: disable=E1101,W0212
-                exec_name = os.environ.get("PYWRY_EXECUTABLE", "PyWry")
-                pywrypath = (Path(sys._MEIPASS) / exec_name).resolve()
-                cmd = f"{exec_name} --start {' '.join(self._bootargs)}"
+                cmd = f"pywry {' '.join(self._bootargs)}"
                 if sys.platform == "darwin":
-                    cmd = f"'{pywrypath}'"
+                    cmd = f"'{pywry_path}'"
 
                 self.shell = True
-                kwargs.update(dict(cwd=str(pywrypath.parent)))
+                kwargs.update(dict(cwd=str(pywry_path.parent)))
 
             env = os.environ.copy()
-            env["PYWRY_PROCESS_NAME"] = self.proc_name
             kwargs.update(dict(env=env))
 
             runner = await self.create_subprocess(cmd=cmd, **kwargs)
@@ -415,8 +411,6 @@ class PyWry:
                 self.thread.join()
             self.thread = thread
 
-        if headless:
-            self.loop.run_until_complete(asyncio.sleep(3))
         self.check_backend()
 
     def close(self):

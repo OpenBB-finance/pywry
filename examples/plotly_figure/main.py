@@ -50,8 +50,6 @@ class PyWryFigure(go.Figure):
         timeout : int, optional
             Timeout for receiving the image, by default 5
         """
-        if not pywry_backend().isatty:
-            return
 
         if not isinstance(filepath, Path):
             filepath = Path(filepath)

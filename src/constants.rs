@@ -101,14 +101,14 @@ pub const PYWRY_WINDOW_SCRIPT: &str = "
 // Add keyboard shortcuts for copy and paste (fixes Mac OS)
 pub const MACOS_COPY_PASTE_SCRIPT: &str = "
 	try {
-		window.addEventListener('keypress', (event) => {
-			if (event.metaKey && event.key === 'c') {
+		window.addEventListener('keydown', (e) => {
+			if (e.key.toLowerCase() === 'c' && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
 				document.execCommand('copy');
-				event.preventDefault();
 			}
-			if (event.metaKey && event.key === 'v') {
+			if (e.key.toLowerCase() === 'v' && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
 				document.execCommand('paste');
-				event.preventDefault();
 			}
 		});
 	} catch (error) {

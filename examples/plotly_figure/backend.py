@@ -50,7 +50,7 @@ class Backend(PyWry):
         fig : go.Figure
             Plotly figure to send to backend.
         """
-        self.loop.run_until_complete(self.check_backend())
+        self.check_backend()
         title = fig.layout.title.text if fig.layout.title else "Plotly Figure"
 
         json_data = json.loads(fig.to_json())
@@ -82,7 +82,7 @@ class Backend(PyWry):
         timeout : int, optional
             Timeout for receiving the image, by default 5
         """
-        self.loop.run_until_complete(self.check_backend())
+        self.check_backend()
 
         json_data = json.loads(fig.to_json())
         json_data["scale"] = scale
@@ -116,11 +116,6 @@ class Backend(PyWry):
         """
         if self.isatty:
             super().start(debug, headless)
-
-    async def check_backend(self):
-        """Override to check if isatty."""
-        if self.isatty:
-            await super().check_backend()
 
 
 def pywry_backend(daemon: bool = True) -> Backend:

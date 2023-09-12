@@ -1,22 +1,17 @@
 [package]
-name = "pywry"
-version = "0.5.14"
+name = "pywry" # Package name
+version = "0.6.0"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[lib]
+[[bin]]
 name = "pywry"
-crate-type = ["cdylib"]
-path = "src/lib.rs"
+path = "src/main.rs"
 
 
 [dependencies]
-pyo3 = { version = "^0.19.0", features = [
-    "extension-module",
-    "generate-import-lib",
-] }
 wry = { version = "^0.31.0", features = ["devtools"] }
 image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread", "full"] }
@@ -30,5 +25,3 @@ simple-home-dir = "0.1.4"
 
 
 [profile.release]
-lto = "thin"
-opt-level = "s"

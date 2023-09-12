@@ -5,12 +5,11 @@ import toml
 from setuptools import setup
 
 try:
-    from setuptools_rust import Binding, RustExtension
+    from setuptools_rust import RustBin
 except ImportError:
     import subprocess
 
     subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools-rust"])
-    from setuptools_rust import Binding, RustExtension
 
 if sys.platform == "linux":
     os.environ["RUSTFLAGS"] = (
@@ -37,10 +36,9 @@ setup(
     name="pywry",
     version=version,
     rust_extensions=[
-        RustExtension(
-            "pywry.pywry",
+        RustBin(
+            "pywry",
             "Cargo.toml",
-            binding=Binding.PyO3,
             debug=False,
             args=["--no-default-features"],
         )

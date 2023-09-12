@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.5.14"
+version = "0.6.0"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -14,16 +14,12 @@ classifiers = [
 dependencies = ["setproctitle"]
 
 [build-system]
-requires = [
-    "setuptools>=58.0.0",
-    "wheel",
-    "maturin>=0.14,<0.15",
-    "toml"
-]
+requires = ["setuptools>=58.0.0", "wheel", "maturin>=0.14,<0.15", "toml"]
 build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
+module-name = "pywry"
 include = ['Cargo.toml', 'src/**/*']
 
 
@@ -40,7 +36,7 @@ combine-as-imports = true
 force-wrap-aliases = true
 
 [tool.ruff.pylint]
-max-args=8
-max-branches=25
-max-returns=9
-max-statements=30
+max-args = 8
+max-branches = 25
+max-returns = 9
+max-statements = 30
