@@ -1,6 +1,6 @@
 [package]
 name = "pywry" # Package name
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
 
@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 
 [dependencies]
-wry = { version = "^0.31.0", features = ["devtools"] }
+wry = { version = "0.31.0", features = ["devtools"] }
 image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread", "full"] }
 serde = { version = "^1.0", features = ["derive"] }
@@ -21,7 +21,4 @@ mime_guess = "^2.0"
 urlencoding = "^2.1.2"
 open = "^5.0"
 rand = "^0.8.4"
-simple-home-dir = "0.1.4"
-
-
-[profile.release]
+simple-home-dir = "^0.2"

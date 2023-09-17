@@ -1,8 +1,8 @@
 [package]
 name = "pywry"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
-include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
+include = ["src/", "Cargo.toml", "LICENSE", "README.md", "build.rs"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,6 +22,3 @@ urlencoding = "^2.1.2"
 rand = "^0.8.4"
 open = "^5.0"
 simple-home-dir = "0.1.4"
-
-
-[profile.release]
