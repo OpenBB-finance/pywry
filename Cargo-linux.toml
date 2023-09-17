@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 
 [dependencies]
-wry = { version = "0.23", features = ["devtools"] }
+wry = { version = "0.24", features = ["devtools"] }
 image = { version = "^0.24.5", default-features = false, features = ["png"] }
 tokio = { version = "^1.23.0", features = ["rt", "rt-multi-thread", "full"] }
 serde = { version = "^1.0", features = ["derive"] }
