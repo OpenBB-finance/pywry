@@ -3,21 +3,19 @@ name: Pip Nightly
 on: workflow_dispatch
 
 jobs:
-  manylinux_2_28-nightly:
-    name: Build manylinux_2_28 wheels nightly
+  manylinux-nightly:
+    name: Build manylinux wheels nightly
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python:
           [
-            # { version: "3.8", abi: "cp38-cp38" },
             { version: "3.9", abi: "cp39-cp39" },
-            # { version: "3.10", abi: "cp310-cp310" },
-            # { version: "3.11", abi: "cp311-cp311" },
           ]
+        target: [manylinux_2_28, manylinux2014]
 
     container:
-      image: quay.io/pypa/manylinux_2_28_x86_64
+      image: quay.io/pypa/${{ matrix.target }}_x86_64
       options: --user root
 
     steps:
@@ -63,8 +61,7 @@ jobs:
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml maturin
-            "${PYBIN}/maturin" pep517 build-wheel --compatibility manylinux_2_28 -Z build-std=std,panic_abort --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
-            "${PYBIN}/maturin" pep517 build-wheel --compatibility manylinux2014 -Z build-std=std,panic_abort --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
+            "${PYBIN}/maturin" pep517 build-wheel --compatibility ${{ matrix.target }} -Z build-std=std,panic_abort --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
           done
 
       # Try to install and test importing the package
