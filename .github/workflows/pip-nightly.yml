@@ -159,7 +159,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [macos, windows, sdist, manylinux_2_28-nightly]
+    needs: [macos, windows, sdist, manylinux-nightly]
     steps:
       - uses: actions/download-artifact@v3
         with:
