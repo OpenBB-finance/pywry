@@ -20,25 +20,25 @@ impl WindowManager {
 		Self { debug: false }
 	}
 
-	pub fn start(&self, debug: bool) -> Result<bool, String> {
+	pub fn start(&self, debug: bool) -> Result<(), String> {
 		let console_printer = structs::ConsolePrinter::new(debug);
 		match window::start_wry(console_printer) {
 			Err(error) => {
 				let error_str = format!("Error starting wry server: {}", error);
 				Err(error_str)
 			}
-			Ok(_) => Ok(true),
+			Ok(_) => Ok(()),
 		}
 	}
 
-	pub fn start_headless(&self, debug: bool) -> Result<bool, String> {
+	pub fn start_headless(&self, debug: bool) -> Result<(), String> {
 		let console_printer = structs::ConsolePrinter::new(debug);
 		match headless::start_headless(console_printer) {
 			Err(error) => {
 				let error_str = format!("Error starting headless server: {}", error);
 				Err(error_str)
 			}
-			Ok(_) => Ok(true),
+			Ok(_) => Ok(()),
 		}
 	}
 }

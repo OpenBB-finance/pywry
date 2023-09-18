@@ -34,8 +34,8 @@ jobs:
         run: |
           yum groupinstall -y "Development Tools"
 
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
-      - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable --profile minimal -y
+      - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
       - uses: actions/checkout@v3
 
       # We remove the Cargo.toml and Cargo.lock files and replace them with
