@@ -8,13 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python:
-          [
-            { version: "3.8", abi: "cp38-cp38" },
-            { version: "3.9", abi: "cp39-cp39" },
-            { version: "3.10", abi: "cp310-cp310" },
-            { version: "3.11", abi: "cp311-cp311" },
-          ]
+        python: [{ version: "3.9", abi: "cp39-cp39" }]
 
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
@@ -40,8 +34,8 @@ jobs:
         run: |
           yum groupinstall -y "Development Tools"
 
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-2022-07-26 --profile minimal -y
-      - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain nightly-2022-07-26-x86_64-unknown-linux-gnu
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable --profile minimal -y
+      - run: source $HOME/.cargo/env && rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
       - uses: actions/checkout@v3
 
       - name: Update version in Cargo-linux.toml and pyproject.toml
@@ -63,7 +57,7 @@ jobs:
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml maturin
-            "${PYBIN}/python" setup.py bdist_wheel -p manylinux_2_28_x86_64 clean
+            "${PYBIN}/maturin" pep517 build-wheel --compatibility manylinux_2_28 --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
           done
 
       # Try to install and test importing the package
@@ -137,6 +131,8 @@ jobs:
 
       - name: Update version in Cargo.toml and pyproject.toml
         run: |
+          rm Cargo.toml && rm Cargo.lock
+          mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           sed -i '2s/name = ".*"/name = "pywry-nightly"/' Cargo.toml
           sed -i "3s/version = \"\(.*\)\"/version = \"\1-dev$(date +%Y%m%d)\"/" Cargo.toml
           head Cargo.toml

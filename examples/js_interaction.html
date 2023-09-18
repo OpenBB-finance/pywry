@@ -1,0 +1,93 @@
+<html>
+
+<head>
+	<style>
+		#pywry_example {
+			width: 50vw;
+			height: 50vh;
+			flex-direction: column;
+			flex: 1;
+			display: flex;
+			justify-content: center;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+
+		#pywry_example input {
+			margin: 2px 2px;
+		}
+
+		#button {
+			margin-top: 5px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="pywry_example" />
+
+
+	<script>
+		const exampleDiv = document.getElementById('pywry_example');
+
+		function toTitleCase(str) {
+			return str.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => {
+				return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+			});
+		}
+
+		function sendData() {
+			const data = {};
+			let missing = false;
+			const inputs = exampleDiv.getElementsByTagName('input');
+			const labels = exampleDiv.getElementsByTagName('label');
+
+			for (let i = 0; i < inputs.length; i++) {
+				const input = inputs[i];
+
+				if (!input.value && input.required) {
+					labels[i].style.color = 'red';
+					missing = true;
+				}
+
+				data[input.name] = input.value;
+			}
+			if (!missing) window.pywry.result(JSON.stringify(data));
+		}
+
+		if (window.json_data) {
+			let json_data = window.json_data;
+			if (typeof json_data === 'string') {
+				json_data = JSON.parse(json_data);
+			}
+
+			let pywry_example = exampleDiv.innerHTML;
+
+			if (json_data.required) {
+				json_data.required.forEach((parm) => {
+					pywry_example += `<label for="${parm}">${toTitleCase(parm)} *</label>`;
+					pywry_example += `<input type"text" name="${parm}" required></input><br>`;
+				});
+			}
+			if (json_data.optional) {
+				json_data.optional.forEach((parm) => {
+					pywry_example += `<label for="${parm}">${toTitleCase(parm)}</label>`;
+					pywry_example += `<input type"text" name="${parm}"></input><br>`;
+				});
+			}
+
+			pywry_example += `<button id="button" onclick="sendData()">Submit</button>`;
+			exampleDiv.innerHTML = pywry_example;
+
+			document.addEventListener('keydown', (event) => {
+				if (event.keyCode === 13) {
+					sendData();
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>

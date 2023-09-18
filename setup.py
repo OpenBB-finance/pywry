@@ -40,7 +40,7 @@ setup(
             "pywry",
             "Cargo.toml",
             debug=False,
-            args=["--no-default-features"],
+            args=["--release", "--no-default-features"],
         )
     ],
     zip_safe=False,

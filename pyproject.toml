@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.6.0"
+version = "0.6.1"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -20,7 +20,7 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "pywry"
-include = ['Cargo.toml', 'src/**/*']
+include = ['Cargo.toml', 'src/**/*', "build.rs"]
 
 
 [project.optional-dependencies]

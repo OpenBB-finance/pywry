@@ -21,7 +21,7 @@ use wry::{
 	webview::{WebView, WebViewBuilder},
 };
 
-#[cfg(any(target_os = "windows", target_os = "macos"))]
+#[cfg(wry_event_loop)]
 use wry::application::event_loop::EventLoopBuilder;
 
 /// Creates a new headless window and returns the window id and webview
@@ -153,10 +153,10 @@ fn create_new_window_headless(
 /// # Returns
 /// * `Result<(), String>` - An error message or nothing
 pub fn start_headless(console: ConsolePrinter) -> Result<(), String> {
-	#[cfg(any(target_os = "windows", target_os = "macos"))]
+	#[cfg(wry_event_loop)]
 	let event_loop: EventLoop<UserEvent> =
 		EventLoopBuilder::<UserEvent>::with_user_event().build();
-	#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+	#[cfg(not(wry_event_loop))]
 	let event_loop: EventLoop<UserEvent> = EventLoop::with_user_event();
 
 	let proxy = event_loop.create_proxy();

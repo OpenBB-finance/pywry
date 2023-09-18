@@ -17,6 +17,23 @@ from .core import PyWry  # noqa: F401"
 	fs::write(&init_path, format!("__version__ = \"{}\"\n\n{}\n", version, imports))
 		.unwrap();
 
+	let cargo_toml = fs::read_to_string("Cargo.toml").unwrap();
+	let wry_version = cargo_toml
+		.lines()
+		.find(|line| line.starts_with("wry = { version = "))
+		.unwrap()
+		.split('"')
+		.nth(1)
+		.unwrap()
+		.split('.')
+		.map(|s| s.parse::<u32>().unwrap())
+		.take(2)
+		.collect::<Vec<u32>>();
+
+	if wry_version.iter().sum::<u32>() >= 31 {
+		println!("cargo:rustc-cfg=wry_event_loop");
+	}
+
 	println!("cargo:rerun-if-changed=build.rs");
 	println!("cargo:rerun-if-changed=Cargo.toml");
 }
