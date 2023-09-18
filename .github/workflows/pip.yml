@@ -47,7 +47,7 @@ jobs:
           mv Cargo-linux.toml Cargo.toml && mv Cargo-linux.lock Cargo.lock
           for PYBIN in /opt/python/${{ matrix.python.abi }}/bin; do
             "${PYBIN}/pip" install --upgrade pip wheel auditwheel setuptools-rust toml maturin
-            "${PYBIN}/maturin" pep517 build-wheel --compatibility manylinux_2_28 -Z build-std=std,panic_abort --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
+            "${PYBIN}/maturin" pep517 build-wheel --compatibility manylinux_2_28 --target=x86_64-unknown-linux-gnu --out dist --find-interpreter
           done
 
       # Try to install and test importing the package
