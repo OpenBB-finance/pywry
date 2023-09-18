@@ -20,7 +20,7 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "pywry"
-include = ['Cargo.toml', 'src/**/*']
+include = ['Cargo.toml', 'src/**/*', "build.rs"]
 
 
 [project.optional-dependencies]

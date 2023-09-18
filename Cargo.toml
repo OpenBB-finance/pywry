@@ -2,7 +2,7 @@
 name = "pywry" # Package name
 version = "0.6.1"
 edition = "2021"
-include = ["src/", "Cargo.toml", "LICENSE", "README.md"]
+include = ["src/", "Cargo.toml", "LICENSE", "README.md", "build.rs"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
