@@ -1,6 +1,6 @@
 [project]
 name = "pywry"
-version = "0.6.1"
+version = "0.6.2"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -14,7 +14,7 @@ classifiers = [
 dependencies = ["setproctitle"]
 
 [build-system]
-requires = ["setuptools>=58.0.0", "wheel", "maturin>=0.14,<0.15", "toml"]
+requires = ["setuptools>=58.0.0", "wheel", "maturin", "toml"]
 build-backend = "maturin"
 
 [tool.maturin]
