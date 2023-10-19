@@ -1,6 +1,6 @@
 [package]
 name = "pywry" # Package name
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 include = ["src/", "Cargo.toml", "LICENSE", "README.md", "build.rs"]
 
@@ -21,4 +21,4 @@ mime_guess = "^2.0"
 urlencoding = "^2.1.2"
 open = "^5.0"
 rand = "^0.8.4"
-simple-home-dir = "^0.2"
+simple-home-dir = "^0.2.0"
