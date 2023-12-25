@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 wry = { version = "0.31.0", features = ["devtools"] }
 image = { version = "^0.24.7", default-features = false, features = ["png"] }
-tokio = { version = "^1.33.0", features = ["rt", "rt-multi-thread", "full"] }
+tokio = { version = "^1.35.1", features = ["rt", "rt-multi-thread", "full"] }
 serde = { version = "^1.0.189", features = ["derive"] }
 serde_json = "^1.0.107"
 mime_guess = "^2.0"
